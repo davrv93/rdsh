@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "source": "demo",
+  "tables": [
+    {
+      "name": "ventas",
+      "kind": "fact",
+      "description": "Hecho de ventas transaccionales. Una fila por venta con ingreso, costo, margen, unidades y descuento. Grano: venta.",
+      "sinonimos": ["ventas", "facturación", "transacciones", "ingresos", "pedidos", "ticket"],
+      "row_estimate": 40000,
+      "columns": [
+        {"name": "venta_id", "type": "BIGINT", "description": "Identificador único de la venta", "role": "id"},
+        {"name": "fecha", "type": "DATE", "description": "Fecha de la venta", "role": "time"},
+        {"name": "cliente_id", "type": "BIGINT", "description": "Cliente que compró", "role": "fk"},
+        {"name": "producto_id", "type": "BIGINT", "description": "Producto vendido", "role": "fk"},
+        {"name": "campania_id", "type": "BIGINT", "description": "Campaña de marketing atribuida (0 = sin campaña)", "role": "fk"},
+        {"name": "region_id", "type": "BIGINT", "description": "Región del cliente", "role": "fk"},
+        {"name": "canal", "type": "VARCHAR", "description": "Canal de venta", "role": "dimension", "categorias": ["web", "tienda", "marketplace", "call center"]},
+        {"name": "unidades", "type": "INTEGER", "description": "Unidades vendidas", "role": "measure"},
+        {"name": "precio_unitario", "type": "DOUBLE", "description": "Precio de lista unitario", "role": "measure"},
+        {"name": "descuento", "type": "DOUBLE", "description": "Descuento aplicado (0 a 1)", "role": "measure"},
+        {"name": "ingreso", "type": "DOUBLE", "description": "Ingreso neto de la venta en moneda local", "role": "measure"},
+        {"name": "costo", "type": "DOUBLE", "description": "Costo de los productos vendidos", "role": "measure"},
+        {"name": "margen", "type": "DOUBLE", "description": "Margen bruto = ingreso - costo", "role": "measure"}
+      ]
+    },
+    {
+      "name": "clientes",
+      "kind": "dimension",
+      "description": "Maestro de clientes con segmento comercial, región y fecha de alta. Contiene PII.",
+      "sinonimos": ["clientes", "cuentas", "compradores", "customer"],
+      "row_estimate": 600,
+      "columns": [
+        {"name": "cliente_id", "type": "BIGINT", "description": "Identificador del cliente", "role": "pk"},
+        {"name": "nombre", "type": "VARCHAR", "description": "Nombre completo del cliente", "role": "dimension", "pii": true},
+        {"name": "email", "type": "VARCHAR", "description": "Correo electrónico de contacto", "role": "dimension", "pii": true},
+        {"name": "documento", "type": "VARCHAR", "description": "Documento de identidad del cliente", "role": "dimension", "pii": true},
+        {"name": "segmento", "type": "VARCHAR", "description": "Segmento comercial", "role": "dimension", "categorias": ["Retail", "Corporativo", "PYME", "Gobierno"]},
+        {"name": "region_id", "type": "BIGINT", "description": "Región del cliente", "role": "fk"},
+        {"name": "fecha_alta", "type": "DATE", "description": "Fecha de alta del cliente", "role": "time"}
+      ]
+    },
+    {
+      "name": "productos",
+      "kind": "dimension",
+      "description": "Catálogo de productos con categoría, subcategoría, costo y precio de lista.",
+      "sinonimos": ["productos", "sku", "artículos", "catálogo", "items"],
+      "row_estimate": 120,
+      "columns": [
+        {"name": "producto_id", "type": "BIGINT", "description": "Identificador del producto", "role": "pk"},
+        {"name": "nombre", "type": "VARCHAR", "description": "Nombre comercial del producto", "role": "dimension"},
+        {"name": "categoria", "type": "VARCHAR", "description": "Categoría del producto", "role": "dimension", "categorias": ["Electrónica", "Hogar", "Moda", "Deportes"]},
+        {"name": "subcategoria", "type": "VARCHAR", "description": "Subcategoría del producto", "role": "dimension"},
+        {"name": "costo_unitario", "type": "DOUBLE", "description": "Costo unitario del producto", "role": "measure"},
+        {"name": "precio_lista", "type": "DOUBLE", "description": "Precio de lista del producto", "role": "measure"}
+      ]
+    },
+    {
+      "name": "campanias",
+      "kind": "dimension",
+      "description": "Campañas de marketing con inversión, canal, tipo y ventana de ejecución. Base para ROI y ROAS.",
+      "sinonimos": ["campañas", "campanias", "marketing", "publicidad", "roi", "roas"],
+      "row_estimate": 24,
+      "columns": [
+        {"name": "campania_id", "type": "BIGINT", "description": "Identificador de la campaña", "role": "pk"},
+        {"name": "nombre", "type": "VARCHAR", "description": "Nombre de la campaña (coincide con utm_campaign en web_sessions)", "role": "dimension"},
+        {"name": "canal", "type": "VARCHAR", "description": "Canal de medios de la campaña", "role": "dimension", "categorias": ["email", "paid_search", "social", "display", "influencers"]},
+        {"name": "tipo", "type": "VARCHAR", "description": "Objetivo de la campaña", "role": "dimension", "categorias": ["awareness", "performance", "retencion"]},
+        {"name": "fecha_inicio", "type": "DATE", "description": "Inicio de la campaña", "role": "time"},
+        {"name": "fecha_fin", "type": "DATE", "description": "Fin de la campaña", "role": "time"},
+        {"name": "inversion", "type": "DOUBLE", "description": "Inversión publicitaria total de la campaña", "role": "measure"}
+      ]
+    },
+    {
+      "name": "regiones",
+      "kind": "dimension",
+      "description": "Catálogo geográfico: región, país y macro zona.",
+      "sinonimos": ["regiones", "geografía", "zona", "país", "territorio"],
+      "row_estimate": 7,
+      "columns": [
+        {"name": "region_id", "type": "BIGINT", "description": "Identificador de la región", "role": "pk"},
+        {"name": "region", "type": "VARCHAR", "description": "Nombre de la región o ciudad", "role": "dimension"},
+        {"name": "pais", "type": "VARCHAR", "description": "País de la región", "role": "dimension", "categorias": ["Perú", "Colombia", "Chile"]},
+        {"name": "macro_zona", "type": "VARCHAR", "description": "Macro zona comercial", "role": "dimension"}
+      ]
+    },
+    {
+      "name": "dim_fechas",
+      "kind": "dimension",
+      "description": "Dimensión calendario con año, mes, nombre de mes en español, trimestre y semana.",
+      "sinonimos": ["calendario", "fechas", "tiempo", "mes", "trimestre", "año"],
+      "row_estimate": 731,
+      "columns": [
+        {"name": "fecha", "type": "DATE", "description": "Fecha del calendario", "role": "pk"},
+        {"name": "anio", "type": "INTEGER", "description": "Año", "role": "dimension"},
+        {"name": "mes", "type": "INTEGER", "description": "Número de mes", "role": "dimension"},
+        {"name": "nombre_mes", "type": "VARCHAR", "description": "Nombre del mes en español", "role": "dimension"},
+        {"name": "anio_mes", "type": "VARCHAR", "description": "Periodo en formato YYYY-MM", "role": "dimension"},
+        {"name": "trimestre", "type": "INTEGER", "description": "Trimestre del año", "role": "dimension"},
+        {"name": "semana", "type": "INTEGER", "description": "Semana ISO", "role": "dimension"},
+        {"name": "dia_semana", "type": "INTEGER", "description": "Día de la semana (1=lunes)", "role": "dimension"},
+        {"name": "es_fin_semana", "type": "BOOLEAN", "description": "Indica si la fecha es fin de semana", "role": "dimension"}
+      ]
+    },
+    {
+      "name": "tickets_soporte",
+      "kind": "fact",
+      "description": "Tickets de atención al cliente. NO tiene relación declarada con el modelo de ventas; guarda el documento del cliente como texto.",
+      "sinonimos": ["soporte", "tickets", "atención", "reclamos", "csat", "postventa"],
+      "row_estimate": 5000,
+      "orphan": true,
+      "columns": [
+        {"name": "ticket_id", "type": "BIGINT", "description": "Identificador del ticket", "role": "pk"},
+        {"name": "fecha", "type": "DATE", "description": "Fecha de creación del ticket", "role": "time"},
+        {"name": "documento_cliente", "type": "VARCHAR", "description": "Documento del cliente que reporta (sin FK declarada)", "role": "dimension", "pii": true},
+        {"name": "canal_contacto", "type": "VARCHAR", "description": "Canal por el que llegó el ticket", "role": "dimension", "categorias": ["telefono", "chat", "email", "whatsapp"]},
+        {"name": "motivo", "type": "VARCHAR", "description": "Motivo del ticket", "role": "dimension", "categorias": ["facturacion", "envio", "garantia", "producto_danado", "consulta"]},
+        {"name": "estado", "type": "VARCHAR", "description": "Estado del ticket", "role": "dimension", "categorias": ["abierto", "cerrado", "escalado"]},
+        {"name": "tiempo_resolucion_h", "type": "DOUBLE", "description": "Horas hasta la resolución", "role": "measure"},
+        {"name": "csat", "type": "INTEGER", "description": "Satisfacción del cliente de 1 a 5", "role": "measure"}
+      ]
+    },
+    {
+      "name": "web_sessions",
+      "kind": "fact",
+      "description": "Sesiones web con UTM de campaña. NO tiene relación declarada con ventas ni campanias; el enlace posible es por texto utm_campaign.",
+      "sinonimos": ["web", "sesiones", "tráfico", "analytics", "utm", "conversiones"],
+      "row_estimate": 25000,
+      "orphan": true,
+      "columns": [
+        {"name": "session_id", "type": "VARCHAR", "description": "Identificador de sesión", "role": "pk"},
+        {"name": "fecha", "type": "DATE", "description": "Fecha de la sesión", "role": "time"},
+        {"name": "utm_campaign", "type": "VARCHAR", "description": "Campaña UTM declarada por la sesión (texto libre)", "role": "dimension"},
+        {"name": "dispositivo", "type": "VARCHAR", "description": "Tipo de dispositivo", "role": "dimension", "categorias": ["mobile", "desktop", "tablet"]},
+        {"name": "duracion_s", "type": "INTEGER", "description": "Duración de la sesión en segundos", "role": "measure"},
+        {"name": "paginas_vistas", "type": "INTEGER", "description": "Páginas vistas en la sesión", "role": "measure"},
+        {"name": "convirtio", "type": "BOOLEAN", "description": "La sesión terminó en conversión", "role": "measure"}
+      ]
+    }
+  ],
+  "relations": [
+    {"left": "ventas.cliente_id", "right": "clientes.cliente_id", "type": "many_to_one", "declared": true},
+    {"left": "ventas.producto_id", "right": "productos.producto_id", "type": "many_to_one", "declared": true},
+    {"left": "ventas.campania_id", "right": "campanias.campania_id", "type": "many_to_one", "declared": true},
+    {"left": "ventas.region_id", "right": "regiones.region_id", "type": "many_to_one", "declared": true},
+    {"left": "ventas.fecha", "right": "dim_fechas.fecha", "type": "many_to_one", "declared": true},
+    {"left": "clientes.region_id", "right": "regiones.region_id", "type": "many_to_one", "declared": true}
+  ],
+  "kpis": [
+    {"name": "ingreso_total", "label": "Ingreso total", "expression": "SUM(ventas.ingreso)", "format": "currency", "description": "Suma del ingreso neto de ventas", "sinonimos": ["ventas", "facturación", "revenue", "ingresos", "monto vendido"]},
+    {"name": "margen_total", "label": "Margen bruto", "expression": "SUM(ventas.margen)", "format": "currency", "description": "Ingreso menos costo de los productos vendidos", "sinonimos": ["margen", "utilidad", "ganancia", "profit"]},
+    {"name": "unidades_vendidas", "label": "Unidades vendidas", "expression": "SUM(ventas.unidades)", "format": "number", "description": "Total de unidades vendidas", "sinonimos": ["unidades", "cantidad", "volumen", "piezas"]},
+    {"name": "ticket_promedio", "label": "Ticket promedio", "expression": "SUM(ventas.ingreso) / COUNT(DISTINCT ventas.venta_id)", "format": "currency", "description": "Ingreso promedio por venta", "sinonimos": ["ticket promedio", "aov", "valor promedio de compra"]},
+    {"name": "margen_pct", "label": "Margen %", "expression": "SUM(ventas.margen) / NULLIF(SUM(ventas.ingreso),0)", "format": "percent", "description": "Porcentaje de margen sobre ingreso", "sinonimos": ["margen porcentual", "rentabilidad", "% margen"]},
+    {"name": "roi_campania", "label": "ROI de campaña", "expression": "(SUM(ventas.ingreso) - SUM(campanias.inversion)) / NULLIF(SUM(campanias.inversion),0)", "format": "ratio", "description": "Retorno sobre la inversión publicitaria por campaña", "sinonimos": ["roi", "retorno", "roas", "rentabilidad de campaña"]},
+    {"name": "clientes_activos", "label": "Clientes activos", "expression": "COUNT(DISTINCT ventas.cliente_id)", "format": "number", "description": "Clientes con al menos una compra en el periodo", "sinonimos": ["clientes activos", "compradores", "cuentas activas"]},
+    {"name": "csat_promedio", "label": "CSAT promedio", "expression": "AVG(tickets_soporte.csat)", "format": "number", "description": "Satisfacción promedio de los tickets de soporte", "sinonimos": ["csat", "satisfacción", "nps de soporte"]},
+    {"name": "tasa_conversion_web", "label": "Tasa de conversión web", "expression": "AVG(CASE WHEN web_sessions.convirtio THEN 1 ELSE 0 END)", "format": "percent", "description": "Proporción de sesiones web que convirtieron", "sinonimos": ["conversión", "cr", "tasa de conversión"]}
+  ],
+  "glosario": [
+    {"termino": "ingreso", "definicion": "Monto neto facturado después de descuentos, columna ventas.ingreso"},
+    {"termino": "margen", "definicion": "Diferencia entre ingreso y costo de los productos vendidos"},
+    {"termino": "ROI", "definicion": "Retorno sobre inversión publicitaria: (ingreso - inversión) / inversión"},
+    {"termino": "trimestre", "definicion": "Bloque de tres meses del año calendario, campo dim_fechas.trimestre"},
+    {"termino": "top clientes", "definicion": "Clientes ordenados de mayor a menor por un KPI, normalmente ingreso"},
+    {"termino": "churn", "definicion": "Clientes sin compras en los últimos 90 días (no calculado en la demo)"}
+  ],
+  "virtual_relations": []
+}

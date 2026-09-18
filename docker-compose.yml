@@ -1,0 +1,150 @@
+# Optimiza Conversacional
+#
+#   docker compose up --build              → almacén + carga + app (camino Redshift completo)
+#   docker compose --profile demo up       → solo la app, con datos de demostración en DuckDB
+#
+# El servicio `warehouse` es PostgreSQL, compatible con el protocolo de Redshift:
+# la aplicación se conecta con psycopg2 y un usuario de solo lectura, exactamente
+# igual que contra un cluster real. Para apuntar a Redshift de verdad basta con
+# cambiar REDSHIFT_HOST/PORT/DB/USER/PASSWORD en .env (ver infra/ para crear el cluster).
+
+services:
+  # ---------------- Almacén analítico (stand-in local de Redshift) ----------------
+  warehouse:
+    image: postgres:16-alpine
+    container_name: optimiza-warehouse
+    environment:
+      POSTGRES_USER: "${WAREHOUSE_ADMIN_USER:-optimiza_admin}"
+      POSTGRES_PASSWORD: "${WAREHOUSE_ADMIN_PASSWORD:-optimiza_admin_pwd}"
+      POSTGRES_DB: "${WAREHOUSE_DB:-analytics}"
+    command: >
+      postgres -c shared_buffers=256MB -c work_mem=32MB
+               -c max_connections=50 -c log_min_duration_statement=2000
+    volumes:
+      - warehouse-data:/var/lib/postgresql/data
+      - ./docker/warehouse:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${WAREHOUSE_PORT_HOST:-5439}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WAREHOUSE_ADMIN_USER:-optimiza_admin} -d ${WAREHOUSE_DB:-analytics}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # ---------------- Carga de datos en el almacén (una sola vez) ----------------
+  warehouse-loader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: optimiza-conversacional:latest
+    container_name: optimiza-loader
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    environment:
+      WAREHOUSE_HOST: warehouse
+      WAREHOUSE_PORT: "5432"
+      WAREHOUSE_DB: "${WAREHOUSE_DB:-analytics}"
+      WAREHOUSE_ADMIN_USER: "${WAREHOUSE_ADMIN_USER:-optimiza_admin}"
+      WAREHOUSE_ADMIN_PASSWORD: "${WAREHOUSE_ADMIN_PASSWORD:-optimiza_admin_pwd}"
+      REDSHIFT_SCHEMA: "${REDSHIFT_SCHEMA:-analytics}"
+      REDSHIFT_USER: "${REDSHIFT_USER:-optimiza_ro}"
+      OPTIMIZA_DATA_DIR: /app/data
+    volumes:
+      - optimiza-data:/app/data
+    command: python -m backend.app.pipeline.warehouse_loader
+    restart: "no"
+
+  # ---------------- Aplicación (API + frontend) ----------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: optimiza-conversacional:latest
+    container_name: optimiza-app
+    depends_on:
+      warehouse:
+        condition: service_healthy
+      warehouse-loader:
+        condition: service_completed_successfully
+    ports:
+      - "${OPTIMIZA_PORT:-8000}:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      OPTIMIZA_SOURCE_MODE: "${OPTIMIZA_SOURCE_MODE:-redshift}"
+      OPTIMIZA_DATA_DIR: /app/data
+      REDSHIFT_HOST: "${REDSHIFT_HOST:-warehouse}"
+      REDSHIFT_PORT: "${REDSHIFT_PORT:-5432}"
+      REDSHIFT_DB: "${REDSHIFT_DB:-analytics}"
+      REDSHIFT_USER: "${REDSHIFT_USER:-optimiza_ro}"
+      REDSHIFT_PASSWORD: "${REDSHIFT_PASSWORD:-optimiza_ro_pwd}"
+      REDSHIFT_SCHEMA: "${REDSHIFT_SCHEMA:-analytics}"
+      REDSHIFT_STATEMENT_TIMEOUT_MS: "${REDSHIFT_STATEMENT_TIMEOUT_MS:-15000}"
+      QUERY_ROUTING: "${QUERY_ROUTING:-auto}"
+      CACHE_MAX_AGE_MIN: "${CACHE_MAX_AGE_MIN:-720}"
+      SYNC_ON_START: "${SYNC_ON_START:-true}"
+      MAX_ROWS: "${MAX_ROWS:-5000}"
+      QUERY_TIMEOUT_S: "${QUERY_TIMEOUT_S:-15}"
+      MASK_PII: "${MASK_PII:-true}"
+      EDGE_CLASSIFIER_BACKEND: "${EDGE_CLASSIFIER_BACKEND:-edge}"
+      EMBEDDING_BACKEND: "${EMBEDDING_BACKEND:-hashing}"
+      VECTOR_BACKEND: "${VECTOR_BACKEND:-memory}"
+      QDRANT_URL: "${QDRANT_URL:-http://qdrant:6333}"
+      LLM_PROVIDER: "${LLM_PROVIDER:-none}"
+      CURRENCY_SYMBOL: "${CURRENCY_SYMBOL:-S/}"
+    volumes:
+      - optimiza-data:/app/data
+      # El frontend se monta desde el repo: editarlo no requiere reconstruir la imagen
+      - ./frontend/static:/app/frontend/static:ro
+    restart: unless-stopped
+
+  # ---------------- Solo demo, sin almacén: docker compose --profile demo up ----------------
+  app-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: optimiza-conversacional:latest
+    container_name: optimiza-app-demo
+    profiles: ["demo"]
+    ports:
+      - "${OPTIMIZA_PORT:-8000}:8000"
+    environment:
+      OPTIMIZA_SOURCE_MODE: demo
+      OPTIMIZA_DATA_DIR: /app/data
+      SYNC_ON_START: "false"
+    volumes:
+      - optimiza-demo-data:/app/data
+      - ./frontend/static:/app/frontend/static:ro
+    restart: unless-stopped
+
+  # ---------------- Vector DB opcional: docker compose --profile qdrant up ----------------
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: optimiza-qdrant
+    profiles: ["qdrant"]
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  # ---------------- Pruebas: docker compose --profile test run --rm tests ----------------
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: optimiza-conversacional:latest
+    profiles: ["test"]
+    environment:
+      OPTIMIZA_DATA_DIR: /app/data-tests
+      OPTIMIZA_SOURCE_MODE: demo
+      SYNC_ON_START: "false"
+    command: sh -c "pip install -q -r requirements-dev.txt && pytest -q"
+
+volumes:
+  optimiza-data:
+  optimiza-demo-data:
+  warehouse-data:
+  qdrant-data:

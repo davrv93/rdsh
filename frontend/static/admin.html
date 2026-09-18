@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Optimiza Conversacional — Panel admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>" />
+</head>
+<body>
+  <header class="top">
+    <h1>Optimiza <span>Conversacional</span> · Configuración</h1>
+    <div class="badges">
+      <span class="badge" id="badge-fuente">fuente: …</span>
+      <span class="badge" id="badge-edge">edge: …</span>
+      <a class="badge link-admin" href="/">← Volver al chat</a>
+    </div>
+  </header>
+
+  <div class="admin">
+    <div class="card">
+      <header><strong>Fuentes de datos</strong><button class="ghost" id="probar" style="margin-left:auto">Probar conexión</button></header>
+      <div class="body" id="fuentes">Cargando…</div>
+    </div>
+
+    <div class="card">
+      <header><strong>Materialización del almacén</strong> · Redshift → DuckDB
+        <span style="margin-left:auto;display:flex;gap:6px">
+          <button class="ghost" id="sync-incremental">Traer novedades</button>
+          <button class="primary" id="sync-completa">Recargar todo</button>
+        </span>
+      </header>
+      <div class="body" id="sync">Cargando…</div>
+      <div class="body" style="border-top:1px solid var(--border)">
+        <div class="fila">
+          <span style="font-size:12.5px;color:var(--muted)">Dónde se ejecutan las consultas:</span>
+          <select id="routing">
+            <option value="auto">auto · copia local si está fresca</option>
+            <option value="redshift">redshift · siempre el almacén</option>
+            <option value="cache">cache · siempre la copia local</option>
+          </select>
+          <button class="ghost" id="btn-introspectar">Releer catálogo del almacén</button>
+          <span id="resultado-routing" style="font-size:12.5px;color:var(--muted)"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><strong>Clasificador edge en español</strong></header>
+      <div class="body" id="clasificador">Cargando…</div>
+      <div class="body" style="border-top:1px solid var(--border)">
+        <div class="fila">
+          <input id="texto-intencion" placeholder="Prueba una frase: compara campañas por roi" style="flex:1" />
+          <button class="primary" id="btn-intencion">Clasificar</button>
+        </div>
+        <div id="resultado-intencion" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><strong>Relaciones</strong> · declaradas, virtuales y candidatas detectadas por DuckDB</header>
+      <div class="body" id="relaciones">Cargando…</div>
+      <div class="body" style="border-top:1px solid var(--border)">
+        <div class="fila">
+          <input id="rel-left" placeholder="tickets_soporte.documento_cliente" style="min-width:270px" />
+          <span style="color:var(--muted)">=</span>
+          <input id="rel-right" placeholder="clientes.documento" style="min-width:230px" />
+          <select id="rel-tipo">
+            <option value="many_to_one">many_to_one</option>
+            <option value="one_to_one">one_to_one</option>
+            <option value="one_to_many">one_to_many</option>
+          </select>
+          <button class="primary" id="btn-relacion">Declarar relación virtual</button>
+        </div>
+        <div id="resultado-relacion" style="margin-top:8px;font-size:12.5px;color:var(--muted)"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><strong>Capa semántica</strong> · embeddings indexados</header>
+      <div class="body">
+        <div class="fila" style="margin-bottom:10px">
+          <input id="consulta-semantica" placeholder="Buscar en la capa semántica: ticket promedio" style="flex:1" />
+          <select id="tipo-doc">
+            <option value="">todos los tipos</option>
+            <option value="tabla">tabla</option>
+            <option value="columna">columna</option>
+            <option value="kpi">kpi</option>
+            <option value="relacion">relacion</option>
+            <option value="valor">valor</option>
+            <option value="glosario">glosario</option>
+          </select>
+          <button class="primary" id="btn-buscar">Buscar</button>
+          <button class="ghost" id="btn-reindexar">Reindexar</button>
+        </div>
+        <div id="embeddings">Cargando…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><strong>Metadata</strong> · edita y recarga el catálogo semántico</header>
+      <div class="body">
+        <textarea id="metadata"></textarea>
+        <div class="fila" style="margin-top:10px">
+          <button class="primary" id="btn-metadata">Cargar metadata</button>
+          <span id="resultado-metadata" style="font-size:12.5px;color:var(--muted)"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><strong>Auditoría</strong> · últimas operaciones</header>
+      <div class="body" id="auditoria">Cargando…</div>
+    </div>
+  </div>
+
+  <script src="/static/admin.js"></script>
+</body>
+</html>

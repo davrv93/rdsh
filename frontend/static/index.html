@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Optimiza Conversacional</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+</head>
+<body>
+  <header class="top">
+    <h1>Optimiza <span>Conversacional</span></h1>
+    <div class="badges">
+      <span class="badge" id="badge-fuente" title="Origen de los datos que estás consultando">Conectando…</span>
+      <span class="badge intent" id="badge-intencion">Listo</span>
+      <label class="switch" title="Muestra el SQL, los tiempos por etapa y el detalle del motor">
+        <input type="checkbox" id="modo-experto" />
+        <span>Experto</span>
+      </label>
+      <a class="badge link-admin" href="/admin">Configuración</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="chat">
+      <div class="chat-log" id="chat-log">
+        <div class="empty" id="empty">
+          <h2>¿Qué quieres saber hoy?</h2>
+          <p>Pregunta por tus ventas, clientes, productos, campañas o soporte, con tus propias palabras.</p>
+          <div class="ejemplos-grid" id="ejemplos-grid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="composer-wrap">
+    <div class="composer-inner">
+      <div class="sugerencias" id="sugerencias"></div>
+      <form class="composer" id="composer">
+        <input id="pregunta" placeholder="Escribe tu pregunta…" autocomplete="off" />
+        <button type="submit" id="enviar">Enviar</button>
+      </form>
+      <p class="pie-composer" id="pie-composer">Consultas de solo lectura · datos personales protegidos</p>
+    </div>
+  </div>
+
+  <script src="/static/formatos.js"></script>
+  <script src="/static/charts.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
