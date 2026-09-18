@@ -89,12 +89,22 @@ services:
       MAX_ROWS: "${MAX_ROWS:-5000}"
       QUERY_TIMEOUT_S: "${QUERY_TIMEOUT_S:-15}"
       MASK_PII: "${MASK_PII:-true}"
+      INTENT_ENGINES: "${INTENT_ENGINES:-edge,reglas}"
+      INTENT_MIN_CONFIDENCE: "${INTENT_MIN_CONFIDENCE:-0.35}"
       EDGE_CLASSIFIER_BACKEND: "${EDGE_CLASSIFIER_BACKEND:-edge}"
       EMBEDDING_BACKEND: "${EMBEDDING_BACKEND:-hashing}"
       VECTOR_BACKEND: "${VECTOR_BACKEND:-memory}"
       QDRANT_URL: "${QDRANT_URL:-http://qdrant:6333}"
       LLM_PROVIDER: "${LLM_PROVIDER:-none}"
       CURRENCY_SYMBOL: "${CURRENCY_SYMBOL:-S/}"
+      # Canal de WhatsApp (perfil whatsapp). Los números autorizados son la
+      # única puerta de entrada: sin lista, el canal no responde a nadie.
+      WHATSAPP_ENABLED: "${WHATSAPP_ENABLED:-false}"
+      EVOLUTION_URL: "${EVOLUTION_URL:-http://evolution-api:8080}"
+      EVOLUTION_API_KEY: "${EVOLUTION_API_KEY:-optimiza-evolution-key}"
+      EVOLUTION_INSTANCE: "${EVOLUTION_INSTANCE:-optimiza}"
+      WHATSAPP_AUTORIZADOS: "${WHATSAPP_AUTORIZADOS:-}"
+      PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:-}"
     volumes:
       - optimiza-data:/app/data
       # El frontend se monta desde el repo: editarlo no requiere reconstruir la imagen
@@ -118,6 +128,83 @@ services:
     volumes:
       - optimiza-demo-data:/app/data
       - ./frontend/static:/app/frontend/static:ro
+    restart: unless-stopped
+
+  # ---------------- Canal de WhatsApp: docker compose --profile whatsapp up -d ----------------
+  # Evolution API expone WhatsApp como API HTTP. La aplicación le habla por REST
+  # y recibe los mensajes entrantes en /api/canales/whatsapp/webhook.
+  evolution-api:
+    # Imagen oficial de Evolution API v2. Para fijar versión, cambia `latest`
+    # por una etiqueta concreta (por ejemplo v2.2.3) en EVOLUTION_IMAGE.
+    image: "${EVOLUTION_IMAGE:-evoapicloud/evolution-api:latest}"
+    container_name: optimiza-evolution
+    profiles: ["whatsapp"]
+    depends_on:
+      evolution-db:
+        condition: service_healthy
+      evolution-cache:
+        condition: service_started
+    ports:
+      - "${EVOLUTION_PORT:-8089}:8080"
+    environment:
+      SERVER_PORT: "8080"
+      SERVER_URL: "${EVOLUTION_SERVER_URL:-http://localhost:8089}"
+      AUTHENTICATION_API_KEY: "${EVOLUTION_API_KEY:-optimiza-evolution-key}"
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: "postgresql://evolution:evolution_pwd@evolution-db:5432/evolution?schema=public"
+      DATABASE_CONNECTION_CLIENT_NAME: optimiza
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://evolution-cache:6379/6
+      CACHE_REDIS_PREFIX_KEY: optimiza
+      CACHE_LOCAL_ENABLED: "false"
+      # La aplicación recibe los mensajes aquí. Dentro de la red de compose el
+      # nombre del servicio `app` resuelve solo.
+      WEBHOOK_GLOBAL_ENABLED: "${EVOLUTION_WEBHOOK_GLOBAL:-false}"
+      WEBHOOK_GLOBAL_URL: "${EVOLUTION_WEBHOOK_URL:-http://app:8000/api/canales/whatsapp/webhook}"
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "false"
+      WEBHOOK_EVENTS_MESSAGES_UPSERT: "true"
+      WEBHOOK_EVENTS_QRCODE_UPDATED: "true"
+      WEBHOOK_EVENTS_CONNECTION_UPDATE: "true"
+      QRCODE_LIMIT: "10"
+      LOG_LEVEL: "${EVOLUTION_LOG_LEVEL:-ERROR}"
+      LOG_BAILEYS: error
+      DEL_INSTANCE: "false"
+      LANGUAGE: es
+    volumes:
+      - evolution-instances:/evolution/instances
+    restart: unless-stopped
+
+  evolution-db:
+    image: postgres:16-alpine
+    container_name: optimiza-evolution-db
+    profiles: ["whatsapp"]
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution_pwd
+      POSTGRES_DB: evolution
+    volumes:
+      - evolution-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution -d evolution"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  evolution-cache:
+    image: redis:7-alpine
+    container_name: optimiza-evolution-cache
+    profiles: ["whatsapp"]
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - evolution-cache-data:/data
     restart: unless-stopped
 
   # ---------------- Vector DB opcional: docker compose --profile qdrant up ----------------
@@ -179,6 +266,9 @@ services:
     command: sh -c "pip install -q -r requirements-dev.txt && pytest -q"
 
 volumes:
+  evolution-instances:
+  evolution-db-data:
+  evolution-cache-data:
   optimiza-data:
   optimiza-demo-data:
   warehouse-data:

@@ -176,25 +176,38 @@ Qué hace:
 En **Configuración** se ve tabla por tabla cuántas filas hay, de cuándo es la copia y si está
 vigente, con botones *Traer novedades* y *Recargar todo*.
 
+La guía de diseño de la interfaz —principios, lenguaje, componentes, estados y
+accesibilidad— está en [design/diseno-ui.md](design/diseno-ui.md).
 Los diagramas están en [design/arquitectura.md](design/arquitectura.md) (Mermaid, se renderizan
 en GitHub) y en [design/arquitectura.svg](design/arquitectura.svg) para presentaciones. El
 detalle escrito está en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). El guion de la presentación
 está en [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
-## Clasificador edge en español
+## Clasificación de intención: una cadena de motores
 
 Corre **antes** que el agente, en CPU, sin GPU y sin red. Devuelve una de siete intenciones:
 `KPI`, `exploracion`, `comparacion`, `detalle`, `grafico`, `exportacion`, `aclaracion`.
 
-- Backend `edge` (por defecto): regresión logística softmax sobre features hasheadas
-  (palabras, bigramas, n-gramas de carácter). Se entrena al arrancar en ~20 ms, ocupa ~14 k
-  parámetros y clasifica en **~0.1 ms**.
-- Backend `transformers`: usa un modelo HuggingFace local; por ejemplo
-  `luigicfilho/intento-v1-edge`, `prudant/es_intent_classification` o
-  `balidea-ai-lab/Micro-GuardBertMTL`. Se configura con `EDGE_CLASSIFIER_BACKEND=transformers`
-  y `EDGE_MODEL_NAME=...`; si el modelo no está disponible localmente, degrada al backend
-  `edge` sin interrumpir la demo.
-- Fallback por reglas (`EDGE_CLASSIFIER_BACKEND=rules`), siempre disponible.
+No depende de un solo clasificador. Los motores se prueban en orden y, **antes de dar por
+perdido a uno, se pasa al siguiente**. Un motor cede el turno cuando no está disponible, cuando
+falla o cuando responde con menos confianza que su umbral:
+
+```bash
+INTENT_ENGINES=edge,transformers,reglas   # orden de la cadena
+INTENT_MIN_CONFIDENCE=0.35                # umbral general
+INTENT_MIN_CONFIDENCE_EDGE=0.45           # umbral de un motor concreto
+```
+
+| Motor | Qué es | Cuándo cede |
+|---|---|---|
+| `edge` | Regresión logística softmax sobre features hasheadas, entrenada al arrancar en ~20 ms. ~14 k parámetros, **~0.1 ms** por pregunta | Si su confianza no alcanza el umbral |
+| `transformers` | Modelo HuggingFace local (`luigicfilho/intento-v1-edge`, `prudant/es_intent_classification`, `balidea-ai-lab/Micro-GuardBertMTL`) | Si el paquete o el modelo no están |
+| `llm` | El modelo de lenguaje configurado | Si no hay credenciales |
+| `reglas` | Expresiones regulares | Nunca: cierra siempre la cadena, así el sistema no se queda sin respuesta |
+
+Cada intento queda registrado con su estado (`aceptado`, `baja_confianza`, `no_disponible`,
+`error`) y se ve en el panel de pasos y en **Configuración**, donde también se puede reordenar
+la cadena en caliente y comparar la evaluación antes y después.
 
 Efecto de la intención en el flujo:
 
@@ -233,6 +246,20 @@ El agente **no inventa joins**. Cuando la pregunta necesita cruzar tablas sin re
 En los datos demo, `tickets_soporte` y `web_sessions` no tienen relación declarada:
 la primera tiene una clave compatible (`documento_cliente` ↔ `clientes.documento`, cobertura
 100 %) y la segunda no tiene ninguna clave confiable contra el modelo de ventas.
+
+## WhatsApp
+
+El mismo agente atiende por WhatsApp, con las mismas validaciones y el mismo enmascaramiento de
+PII. La conexión la resuelve [Evolution API](https://doc.evolution-api.com), que corre como un
+contenedor más:
+
+```bash
+docker compose --profile whatsapp up -d       # Evolution API + su base y su caché
+```
+
+En **Configuración → WhatsApp**: vincular el teléfono con el QR, aplicar el webhook, declarar
+los números autorizados y encender el canal. Sin lista de autorizados el canal no responde a
+nadie, a propósito. El detalle está en [docs/WHATSAPP.md](docs/WHATSAPP.md).
 
 ## Modos de fuente
 
@@ -282,7 +309,9 @@ Sin API key, la demo funciona igual con el planificador determinista y costo cer
 | `POST /api/admin/buscar` | Búsqueda semántica sobre la metadata |
 | `GET/POST/DELETE /api/admin/relaciones` | Relaciones declaradas, virtuales y candidatas |
 | `GET /api/admin/fuentes`, `POST /api/admin/fuentes/probar` | Estado y prueba de conexiones |
-| `GET /api/admin/clasificador` | Evaluación del clasificador edge |
+| `GET /api/admin/clasificador` | Estado de la cadena de motores y su evaluación |
+| `POST /api/admin/clasificador/cadena` | Reordena la cadena de clasificación en caliente |
+| `GET/POST /api/canales/whatsapp/*` | Estado, vinculación, configuración y prueba del canal |
 | `GET /api/admin/auditoria` | Últimos eventos auditados |
 | `GET /api/admin/sync` | Estado de la copia materializada, tabla por tabla |
 | `POST /api/admin/sync` | Ejecuta la materialización (completa o incremental) |
@@ -372,6 +401,10 @@ Ver [.env.example](.env.example). Las más relevantes:
 | `EMBEDDING_BACKEND` | `hashing` | `hashing` o `st` (sentence-transformers) |
 | `VECTOR_BACKEND` | `memory` | `memory` o `qdrant` |
 | `LLM_PROVIDER` | `none` | `none` o `anthropic` |
+| `INTENT_ENGINES` | `edge,reglas` | Cadena de motores de clasificación, en orden |
+| `INTENT_MIN_CONFIDENCE` | `0.35` | Confianza mínima para aceptar un motor |
+| `WHATSAPP_ENABLED` | `false` | Enciende el canal de WhatsApp |
+| `WHATSAPP_AUTORIZADOS` | vacío | Números que pueden usar el canal |
 | `QUERY_ROUTING` | `auto` | `auto`, `redshift` o `cache` |
 | `CACHE_MAX_AGE_MIN` | `720` | Minutos que la copia local se considera vigente |
 | `SYNC_ON_START` | `true` | Materializa al arrancar si la copia está vacía |
@@ -380,7 +413,8 @@ Ver [.env.example](.env.example). Las más relevantes:
 ## Estructura
 
 ```
-backend/app/     config, agent/ (clasificador, planner, validador, gráficos, orquestador),
+backend/app/     config, agent/ (clasificación en cadena, planner, validador, gráficos,
+                 orquestador, presentación), canales/ (WhatsApp sobre Evolution API),
                  semantic/ (embeddings, vector store, catálogo), engines/ (DuckDB, Redshift),
                  pipeline/ (carga del almacén y materialización a DuckDB),
                  security/ (PII, auditoría), api/ (rutas), seed/ (datos y metadata)

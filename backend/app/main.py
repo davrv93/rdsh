@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .api import routes_admin, routes_chat, routes_meta
+from .api import routes_admin, routes_canales, routes_chat, routes_meta
 from .config import FRONTEND_DIR, get_settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -83,6 +83,7 @@ app.add_middleware(
 app.include_router(routes_chat.router)
 app.include_router(routes_admin.router)
 app.include_router(routes_meta.router)
+app.include_router(routes_canales.router)
 
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")

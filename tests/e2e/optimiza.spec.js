@@ -57,10 +57,22 @@ test('una pregunta ambigua pide aclaración y no ejecuta SQL', async ({ page }) 
   await expect(page.locator('.msg.bot.warn').last()).toContainText(/contexto para consultar/i, { timeout: 15000 });
 });
 
-test('el panel de configuración muestra el clasificador y las relaciones candidatas', async ({ page }) => {
+test('el panel de configuración muestra la cadena de motores y las relaciones candidatas', async ({ page }) => {
   await page.goto('/admin');
-  await expect(page.locator('#clasificador')).toContainText('accuracy eval', { timeout: 15000 });
+  // La cadena de clasificación, con su orden y su precisión
+  await expect(page.locator('#cadena')).toContainText('cadena:', { timeout: 15000 });
+  await expect(page.locator('#cadena')).toContainText('accuracy');
+  await expect(page.locator('#cadena')).toContainText('reglas');
+  // Los casos de control, resueltos por algún motor
+  await expect(page.locator('#clasificador')).toContainText('Casos de control');
   await expect(page.locator('#relaciones')).toContainText('candidata');
+});
+
+test('el panel de configuración ofrece el canal de WhatsApp', async ({ page }) => {
+  await page.goto('/admin');
+  await expect(page.locator('#whatsapp')).toContainText(/canal:/, { timeout: 15000 });
+  await expect(page.locator('#whatsapp')).toContainText('instancia:');
+  await expect(page.locator('#wa-vincular')).toBeVisible();
 });
 
 test('el panel de configuración muestra la materialización del almacén', async ({ page }) => {

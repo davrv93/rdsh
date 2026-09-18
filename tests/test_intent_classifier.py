@@ -40,13 +40,18 @@ def test_fallback_por_reglas_siempre_responde():
     assert 0 < confianza <= 1
 
 
-def test_backend_desconocido_degrada_a_reglas(monkeypatch):
+def test_configuracion_previa_de_un_solo_motor_sigue_funcionando(monkeypatch):
+    """`EDGE_CLASSIFIER_BACKEND=rules` arma una cadena de un solo motor.
+
+    Solo aplica cuando INTENT_ENGINES no está definido: esa variable manda.
+    """
+    monkeypatch.delenv("INTENT_ENGINES", raising=False)
     monkeypatch.setenv("EDGE_CLASSIFIER_BACKEND", "rules")
     from backend.app.config import reload_settings
 
     reload_settings()
     clasificador = IntentClassifier()
-    assert clasificador.backend == "rules"
+    assert clasificador.configurado == ["reglas"]
     assert clasificador.classify("dame un gráfico de ventas").intent == "grafico"
     monkeypatch.setenv("EDGE_CLASSIFIER_BACKEND", "edge")
     reload_settings()

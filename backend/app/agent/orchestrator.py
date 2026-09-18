@@ -427,11 +427,16 @@ class Orchestrator:
         sesion.historial.append({"role": "user", "content": pregunta})
 
         # 1. Clasificador edge
+        self.classifier = get_classifier()  # puede haberse reconstruido desde el panel
         intencion = self.classifier.classify(pregunta)
+        relevo = (
+            f" tras {intencion.relevos} relevo{'s' if intencion.relevos > 1 else ''}"
+            if intencion.relevos else ""
+        )
         cronometro.marcar(
             "clasificador_edge",
             f"Intención «{intencion.intent}» (confianza {intencion.confidence:.2f}) "
-            f"con backend {intencion.backend}",
+            f"resuelta por el motor {intencion.motor}{relevo}",
             intencion.latency_ms,
             **intencion.to_dict(),
         )

@@ -38,6 +38,27 @@ class RoutingRequest(BaseModel):
     routing: str = Field("auto", pattern="^(auto|redshift|cache)$")
 
 
+class CadenaClasificacionRequest(BaseModel):
+    motores: list[str] = Field(..., min_length=1)
+    umbral: float | None = Field(None, ge=0.0, le=1.0)
+
+
+class WhatsAppConfigRequest(BaseModel):
+    url: str | None = None
+    api_key: str | None = None
+    instancia: str | None = None
+    autorizados: list[str] | None = None
+    base_publica: str | None = None
+    url_webhook: str | None = None
+    habilitado: bool | None = None
+
+
+class WhatsAppPruebaRequest(BaseModel):
+    texto: str = Field(..., min_length=1, max_length=2000)
+    numero: str | None = None
+    enviar: bool = False
+
+
 class BusquedaSemanticaRequest(BaseModel):
     consulta: str
     k: int = 10

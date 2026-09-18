@@ -49,7 +49,9 @@ python -m backend.app.pipeline.warehouse_loader                          # recar
 | Ruta | Responsabilidad |
 |---|---|
 | `backend/app/config.py` | Toda la configuración por variables de entorno. Nada se hardcodea. |
-| `backend/app/agent/intent_classifier.py` | Clasificador edge en español. Tres backends: `edge` (softmax sobre features hasheadas, entrenado en proceso), `transformers`, `rules`. |
+| `backend/app/agent/intent_classifier.py` | Fachada de clasificación. La lógica está en `agent/clasificacion/`. |
+| `backend/app/agent/clasificacion/` | Cadena de motores con relevo: `base.py` (contrato), `motores.py` (edge, transformers, llm, reglas), `cadena.py` (orden, umbrales y traza). |
+| `backend/app/canales/whatsapp.py` | Canal de WhatsApp sobre Evolution API: instancia, webhook, autorización y formato de texto plano. |
 | `backend/app/agent/intent_data.py` | Frases de entrenamiento y set de evaluación del clasificador. |
 | `backend/app/agent/planner.py` | Traduce la pregunta a un plan y a SQL portable. Detecta métrica, dimensión, grano temporal, filtros y ranking. |
 | `backend/app/agent/validator.py` | Única puerta antes de ejecutar: solo lectura, tablas permitidas, `LIMIT`, riesgo de escaneo. |
@@ -92,7 +94,11 @@ python -m backend.app.pipeline.warehouse_loader                          # recar
 8. **La vista ejecutiva no muestra jerga.** El texto de `respuesta` no debe contener SQL,
    nombres de columnas técnicos ni nombres de motores. Ese detalle vive en
    `respuesta_tecnica`, `sql` y los paneles del modo experto. Hay pruebas que lo verifican.
-9. **Todo en español**: interfaz, mensajes, docstrings, nombres de dominio, commits y
+9. **La cadena de clasificación siempre termina en `reglas`.** Es la garantía de que el
+   sistema responde aunque fallen los demás motores; `cadena.py` la agrega si no está.
+10. **WhatsApp solo responde a números autorizados.** Sin lista, el canal calla. No agregues un
+   modo "abierto a todos".
+11. **Todo en español**: interfaz, mensajes, docstrings, nombres de dominio, commits y
    documentación. Los identificadores de librerías y los términos técnicos establecidos
    quedan en su idioma original.
 
@@ -119,9 +125,13 @@ determinista debe saber calcularlo, agregarlo a `METRICAS` y a `PALABRAS_METRICA
 legible a `ETIQUETAS` en `presentacion.py`.
 
 **Una intención nueva**: agregar frases a `ENTRENAMIENTO` y casos a `EVALUACION` en
-`intent_data.py`, la regla de respaldo en `REGLAS` de `intent_classifier.py`, la traducción en
-`INTENCIONES_NEGOCIO` de `presentacion.py` y la rama correspondiente en
+`intent_data.py`, la regla de respaldo en `REGLAS` de `clasificacion/motores.py`, la traducción
+en `INTENCIONES_NEGOCIO` de `presentacion.py` y la rama correspondiente en
 `orchestrator.preguntar`.
+
+**Un motor de clasificación nuevo**: implementar `MotorBase` en `clasificacion/motores.py`
+(`nombre`, `disponible()`, `clasificar()`, `info()`), registrarlo en `REGISTRO` y agregarlo a
+`INTENT_ENGINES`. La cadena se encarga del relevo; no hace falta tocar el orquestador.
 
 **Una tabla nueva del almacén**: describirla en `metadata.json` (incluyendo `role` de cada
 columna y `pii` donde corresponda), agregar el DDL en `warehouse_loader.DDL` si forma parte
@@ -173,5 +183,6 @@ Cosas que ya costaron un rato y conviene no repetir:
 3. Si tocaste frontend: `npm run test:unit` (rápido, sin servidor) y `npx playwright test`
    con la aplicación levantada.
 4. Si cambiaste comportamiento visible, actualiza `README.md` y, si aplica,
-   `docs/ARCHITECTURE.md` y `docs/DEMO_SCRIPT.md`.
+   `docs/ARCHITECTURE.md`, `docs/DEMO_SCRIPT.md` y `design/diseno-ui.md`.
+5. Si tocaste la interfaz, revisa la lista de verificación de `design/diseno-ui.md`, sección 9.
 5. Reporta lo que quedó fuera. No declares terminado lo que no verificaste.

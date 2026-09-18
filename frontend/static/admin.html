@@ -49,8 +49,18 @@
     </div>
 
     <div class="card">
-      <header><strong>Clasificador edge en español</strong></header>
-      <div class="body" id="clasificador">Cargando…</div>
+      <header><strong>Clasificación de intención</strong> · cadena de motores con relevo</header>
+      <div class="body" id="cadena">Cargando…</div>
+      <div class="body" style="border-top:1px solid var(--border)">
+        <div class="fila">
+          <span style="font-size:12.5px;color:var(--muted)">Orden de la cadena:</span>
+          <input id="cadena-motores" placeholder="edge,transformers,reglas" style="min-width:260px" />
+          <input id="cadena-umbral" type="number" step="0.05" min="0" max="1" placeholder="0.35" style="width:110px" />
+          <button class="primary" id="btn-cadena">Aplicar</button>
+          <span id="resultado-cadena" style="font-size:12.5px;color:var(--muted)"></span>
+        </div>
+      </div>
+      <div class="body" id="clasificador" style="border-top:1px solid var(--border)">Cargando…</div>
       <div class="body" style="border-top:1px solid var(--border)">
         <div class="fila">
           <input id="texto-intencion" placeholder="Prueba una frase: compara campañas por roi" style="flex:1" />
@@ -76,6 +86,37 @@
           <button class="primary" id="btn-relacion">Declarar relación virtual</button>
         </div>
         <div id="resultado-relacion" style="margin-top:8px;font-size:12.5px;color:var(--muted)"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <header><strong>WhatsApp</strong> · canal conversacional vía Evolution API
+        <span style="margin-left:auto;display:flex;gap:6px">
+          <button class="ghost" id="wa-refrescar">Actualizar</button>
+          <button class="primary" id="wa-vincular">Vincular teléfono</button>
+        </span>
+      </header>
+      <div class="body" id="whatsapp">Cargando…</div>
+      <div class="body" style="border-top:1px solid var(--border)">
+        <div class="fila">
+          <label class="switch"><input type="checkbox" id="wa-habilitado" /><span>Canal activo</span></label>
+          <input id="wa-autorizados" placeholder="Números autorizados: 51999888777, 51988777666" style="flex:1;min-width:280px" />
+          <input id="wa-base" placeholder="URL pública para descargas" style="min-width:220px" />
+          <button class="primary" id="wa-guardar">Guardar</button>
+        </div>
+        <div class="fila" style="margin-top:8px">
+          <input id="wa-webhook" placeholder="URL del webhook: http://app:8000/api/canales/whatsapp/webhook" style="flex:1;min-width:320px" />
+          <button class="ghost" id="wa-webhook-set">Aplicar webhook</button>
+          <span id="wa-resultado" style="font-size:12.5px;color:var(--muted)"></span>
+        </div>
+        <div class="fila" style="margin-top:8px">
+          <input id="wa-prueba" placeholder="Probar una pregunta: ingreso por región" style="flex:1;min-width:280px" />
+          <input id="wa-numero" placeholder="Número (opcional)" style="min-width:170px" />
+          <button class="ghost" id="wa-probar">Ver respuesta</button>
+          <button class="ghost" id="wa-enviar">Enviar de verdad</button>
+        </div>
+        <pre class="sql" id="wa-vista" style="margin-top:10px;display:none"></pre>
+        <div id="wa-qr" style="margin-top:10px"></div>
       </div>
     </div>
 

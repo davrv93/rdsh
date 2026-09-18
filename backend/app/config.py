@@ -75,6 +75,11 @@ class Settings:
     llm_max_tokens: int = field(default_factory=lambda: _int("LLM_MAX_TOKENS", 1200))
 
     edge_backend: str = field(default_factory=lambda: os.getenv("EDGE_CLASSIFIER_BACKEND", "edge"))
+    # Cadena de motores de clasificación, en orden de preferencia
+    intent_engines_raw: str = field(default_factory=lambda: os.getenv("INTENT_ENGINES", ""))
+    intent_min_confidence: float = field(
+        default_factory=lambda: _float("INTENT_MIN_CONFIDENCE", 0.35)
+    )
     edge_model_name: str = field(
         default_factory=lambda: os.getenv("EDGE_MODEL_NAME", "luigicfilho/intento-v1-edge")
     )
@@ -96,6 +101,14 @@ class Settings:
     # Materializa Redshift -> DuckDB al arrancar si la caché está vacía
     sync_on_start: bool = field(default_factory=lambda: _bool("SYNC_ON_START", True))
 
+    # ---------- Canal de WhatsApp (Evolution API) ----------
+    whatsapp_enabled: bool = field(default_factory=lambda: _bool("WHATSAPP_ENABLED", False))
+    evolution_url: str = field(default_factory=lambda: os.getenv("EVOLUTION_URL", "http://evolution-api:8080"))
+    evolution_api_key: str = field(default_factory=lambda: os.getenv("EVOLUTION_API_KEY", ""))
+    evolution_instance: str = field(default_factory=lambda: os.getenv("EVOLUTION_INSTANCE", "optimiza"))
+    whatsapp_autorizados_raw: str = field(default_factory=lambda: os.getenv("WHATSAPP_AUTORIZADOS", ""))
+    public_base_url: str = field(default_factory=lambda: os.getenv("PUBLIC_BASE_URL", ""))
+
     currency_symbol: str = field(default_factory=lambda: os.getenv("CURRENCY_SYMBOL", "S/"))
 
     cost_input_usd_per_mtok: float = field(
@@ -106,6 +119,40 @@ class Settings:
     )
 
     redshift: RedshiftSettings = field(default_factory=RedshiftSettings)
+
+    @property
+    def whatsapp_autorizados(self) -> list[str]:
+        """Números que pueden usar el canal. Vacío significa canal cerrado."""
+        return [n.strip() for n in self.whatsapp_autorizados_raw.split(",") if n.strip()]
+
+    @property
+    def intent_engines(self) -> list[str]:
+        """Orden de la cadena de clasificación.
+
+        `INTENT_ENGINES` manda. Si no está, se deriva de `EDGE_CLASSIFIER_BACKEND`
+        para no romper configuraciones anteriores.
+        """
+        if self.intent_engines_raw.strip():
+            return [m.strip() for m in self.intent_engines_raw.split(",") if m.strip()]
+        configurado = self.edge_backend.lower()
+        if configurado in {"rules", "reglas"}:
+            return ["reglas"]
+        if configurado == "transformers":
+            return ["transformers", "edge", "reglas"]
+        return ["edge", "reglas"]
+
+    @property
+    def intent_umbrales(self) -> dict[str, float]:
+        """Umbrales por motor: INTENT_MIN_CONFIDENCE_<MOTOR>."""
+        umbrales: dict[str, float] = {}
+        for clave, valor in os.environ.items():
+            if clave.startswith("INTENT_MIN_CONFIDENCE_"):
+                motor = clave[len("INTENT_MIN_CONFIDENCE_"):].lower()
+                try:
+                    umbrales[motor] = float(valor)
+                except ValueError:
+                    continue
+        return umbrales
 
     @property
     def use_redshift(self) -> bool:

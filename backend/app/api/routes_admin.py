@@ -14,6 +14,7 @@ from ..security import audit
 from ..semantic.catalog import get_catalog
 from .schemas import (
     BusquedaSemanticaRequest,
+    CadenaClasificacionRequest,
     MetadataRequest,
     RelacionVirtualRequest,
     RoutingRequest,
@@ -231,10 +232,46 @@ def introspectar() -> dict:
 
 @router.get("/clasificador")
 def estado_clasificador() -> dict:
+    """Estado de la cadena de motores y su evaluación sobre el set de control."""
     clasificador = get_classifier()
     return {
         "backend": clasificador.backend,
         "configurado": clasificador.configurado,
+        "info": clasificador.info,
+        "evaluacion": clasificador.evaluate(),
+        "motores_disponibles": sorted({
+            "edge", "transformers", "llm", "reglas",
+        }),
+    }
+
+
+@router.post("/clasificador/cadena")
+def cambiar_cadena(req: CadenaClasificacionRequest) -> dict:
+    """Reordena la cadena de clasificación sin reiniciar el servicio.
+
+    Útil para comparar motores con tráfico real: se cambia el orden, se mira la
+    evaluación y se vuelve atrás si empeora.
+    """
+    from ..agent.intent_classifier import IntentClassifier, reset_classifier
+
+    os.environ["INTENT_ENGINES"] = ",".join(req.motores)
+    if req.umbral is not None:
+        os.environ["INTENT_MIN_CONFIDENCE"] = str(req.umbral)
+    reload_settings()
+    reset_classifier()
+    try:
+        clasificador = IntentClassifier()
+    except Exception as exc:
+        raise HTTPException(400, f"No se pudo construir la cadena: {exc}") from exc
+
+    audit.registrar("cadena_clasificacion_cambiada",
+                    {"motores": clasificador.configurado, "umbral": req.umbral})
+    from ..agent.intent_classifier import get_classifier as _obtener
+
+    _obtener()  # deja la instancia global reconstruida
+    return {
+        "ok": True,
+        "cadena": clasificador.configurado,
         "info": clasificador.info,
         "evaluacion": clasificador.evaluate(),
     }
