@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Pruebas unitarias del frontend</title>
+</head>
+<body>
+  <!-- Estructura mínima que esperan los módulos del frontend.
+       Es un recorte de index.html: solo los identificadores que se consultan. -->
+  <header class="top">
+    <span class="badge" id="badge-fuente">Conectando…</span>
+    <span class="badge intent" id="badge-intencion">Listo</span>
+    <label class="switch"><input type="checkbox" id="modo-experto" /></label>
+  </header>
+  <main class="layout">
+    <section class="chat"><div class="chat-log" id="chat-log"></div></section>
+  </main>
+  <div class="composer-wrap">
+    <div class="sugerencias" id="sugerencias"></div>
+    <form class="composer" id="composer">
+      <input id="pregunta" />
+      <button type="submit" id="enviar">Enviar</button>
+    </form>
+  </div>
+  <div id="ejemplos-grid"></div>
+
+  <script src="/tests/unit-web/fixtures.js"></script>
+  <script src="/tests/unit-web/dobles.js"></script>
+  <script src="/tests/unit-web/microtest.js"></script>
+  <!-- El runner inyecta aquí los módulos bajo prueba y el spec -->
+  <script>
+    (function () {
+      const parametros = new URLSearchParams(location.search);
+      const modulos = (parametros.get('modulos') || '').split(',').filter(Boolean);
+      const spec = parametros.get('spec');
+      const cargar = (src) => new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('No se pudo cargar ' + src));
+        document.body.appendChild(s);
+      });
+
+      (async () => {
+        try {
+          for (const modulo of modulos) await cargar(modulo);
+          await cargar(spec);
+          window.__resultado = window.__microtest.ejecutar();
+        } catch (e) {
+          window.__resultado = {
+            suites: [], total: 0, fallos: 1, ms: 0,
+            errorDeCarga: e && e.message ? e.message : String(e),
+          };
+        }
+        window.__listo = true;
+      })();
+    })();
+  </script>
+</body>
+</html>

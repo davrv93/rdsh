@@ -2,11 +2,16 @@
   "name": "optimiza-conversacional-e2e",
   "private": true,
   "version": "1.0.0",
-  "description": "Pruebas E2E (Playwright) de la demo Optimiza Conversacional",
+  "description": "Pruebas del frontend de Optimiza Conversacional: unitarias sobre Lightpanda y E2E con Playwright",
   "scripts": {
-    "test:e2e": "playwright test"
+    "test:unit": "node tests/unit-web/runner.mjs",
+    "test:unit:chromium": "MOTOR_PRUEBAS=chromium node tests/unit-web/runner.mjs",
+    "test:unit:json": "node tests/unit-web/runner.mjs --json",
+    "test:e2e": "playwright test",
+    "lightpanda:install": "bash scripts/instalar_lightpanda.sh"
   },
   "devDependencies": {
-    "@playwright/test": "^1.48.0"
+    "@playwright/test": "^1.48.0",
+    "puppeteer-core": "^25.11.0"
   }
 }

@@ -12,7 +12,7 @@ lo ejecuta contra el almacén analítico (Redshift o su equivalente local) o con
 materializada en DuckDB, transforma el resultado y devuelve tabla, gráfico, explicación y
 los tiempos de cada etapa.
 
-Aproximadamente 7 300 líneas entre backend, frontend y pruebas. Sin framework de frontend:
+Aproximadamente 8 516 líneas entre backend, frontend y pruebas. Sin framework de frontend:
 HTML, CSS y JavaScript sin dependencias de build.
 
 ## Comandos
@@ -25,8 +25,10 @@ docker compose up --build
 docker compose --profile demo up app-demo
 
 # Pruebas
-.venv/bin/python -m pytest -q                      # 64 pruebas (4 de integración se saltan)
+.venv/bin/python -m pytest -q                      # 72 pruebas (4 de integración se saltan)
 docker compose --profile test run --rm tests       # las mismas dentro de la imagen
+npm run test:unit                                  # 64 unitarias del frontend sobre Lightpanda (~60 ms)
+npm run test:unit:chromium                         # el mismo suite en Chromium, para contrastar
 npx playwright test                                # 5 pruebas de interfaz (requiere la app arriba)
 
 # Pruebas de integración contra el almacén levantado
@@ -63,6 +65,7 @@ python -m backend.app.pipeline.warehouse_loader                          # recar
 | `backend/app/security/` | Enmascaramiento de PII y auditoría JSONL. |
 | `backend/app/api/` | Rutas de chat, administración y metainformación. |
 | `frontend/static/` | Chat de una columna, formatos de negocio, gráficos y panel de configuración. |
+| `tests/unit-web/` | Motor propio de pruebas unitarias del frontend sobre Lightpanda: runner, capa de navegador, harness y specs. |
 | `docker/warehouse/01-init.sql` | Esquema, rol de solo lectura y revocación de permisos de escritura. |
 | `infra/` | Terraform para Redshift Serverless y script de bootstrap. |
 
@@ -101,8 +104,8 @@ python -m backend.app.pipeline.warehouse_loader                          # recar
 - Docstrings que expliquen **por qué**, no qué hace la línea siguiente.
 - Sin dependencias nuevas salvo necesidad real. El camino por defecto debe funcionar sin red:
   embeddings por hashing, clasificador entrenado en proceso, generador SQL determinista.
-- El frontend no tiene build. Nada de npm en producción: `package.json` existe solo para
-  Playwright.
+- El frontend no tiene build. Nada de npm en producción: `package.json` existe solo para las
+  pruebas (Playwright y `puppeteer-core`, que habla CDP con Lightpanda).
 - Las respuestas de la API son diccionarios planos serializables. Si agregas un campo,
   agrégalo también a la prueba correspondiente en `tests/test_api.py`.
 
@@ -123,6 +126,10 @@ legible a `ETIQUETAS` en `presentacion.py`.
 **Una tabla nueva del almacén**: describirla en `metadata.json` (incluyendo `role` de cada
 columna y `pii` donde corresponda), agregar el DDL en `warehouse_loader.DDL` si forma parte
 del entorno local, y verificar que `sync.columna_marca` encuentre su columna de fecha.
+
+**Una función nueva del frontend**: agregar el caso en `tests/unit-web/specs/`. Si toca el
+render de resultados, usar un fixture de `tests/unit-web/fixtures/` en vez de inventar el
+payload; se capturan con `curl -X POST localhost:8000/api/preguntar`.
 
 **Una etapa nueva del agente**: marcarla con `cronometro.marcar(...)` y traducirla en
 `PASOS_NEGOCIO` de `presentacion.py`, o el usuario verá el nombre técnico.
@@ -149,6 +156,13 @@ Cosas que ya costaron un rato y conviene no repetir:
   llevan `flex: 0 0 auto` para no colapsar a cero.
 - **Acentos en las pruebas de Playwright**: usa texto sin acentos en las aserciones, o normaliza
   a NFC. Un `más` compuesto y otro precompuesto no coinciden.
+- **Handshake CDP con nombre de host**: un servidor CDP responde `403` si el header `Host` no
+  es una IP o `localhost` (defensa contra DNS rebinding). Entre contenedores hay que resolver
+  el nombre a IP antes de conectar; está resuelto en `tests/unit-web/navegador.mjs`.
+- **La imagen de Lightpanda usa tini como entrypoint**: el `command` del compose debe incluir
+  la ruta del binario (`/bin/lightpanda serve …`), no solo `serve`.
+- **Lightpanda no tiene layout**: `clientWidth` devuelve 0 y no hay capturas de pantalla. Lo
+  que dependa de píxeles va en Playwright, no en el motor unitario.
 - **Esperar al contenedor**: tras `docker compose up -d --build`, un bucle de `curl` sin pausa
   se agota antes de que el servicio levante. Consulta el estado con `docker compose ps`.
 
@@ -156,7 +170,8 @@ Cosas que ya costaron un rato y conviene no repetir:
 
 1. `.venv/bin/python -m pytest -q` en verde.
 2. Si tocaste backend: `docker compose up -d --build app` y las pruebas dentro de la imagen.
-3. Si tocaste frontend: `npx playwright test` con la aplicación levantada.
+3. Si tocaste frontend: `npm run test:unit` (rápido, sin servidor) y `npx playwright test`
+   con la aplicación levantada.
 4. Si cambiaste comportamiento visible, actualiza `README.md` y, si aplica,
    `docs/ARCHITECTURE.md` y `docs/DEMO_SCRIPT.md`.
 5. Reporta lo que quedó fuera. No declares terminado lo que no verificaste.

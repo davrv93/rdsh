@@ -130,6 +130,41 @@ services:
     volumes:
       - qdrant-data:/qdrant/storage
 
+  # ---------------- Navegador para las pruebas unitarias del frontend ----------------
+  # docker compose --profile test up -d lightpanda
+  lightpanda:
+    image: lightpanda/browser:nightly
+    container_name: optimiza-lightpanda
+    profiles: ["test"]
+    # El entrypoint de la imagen es tini, así que el comando incluye el binario
+    # --advertise-host: Lightpanda valida el header Host del WebSocket; con
+    # --host 0.0.0.0 hay que anunciar el nombre con el que lo llaman los demás.
+    command: ["/bin/lightpanda", "serve", "--host", "0.0.0.0", "--port", "9222",
+              "--advertise-host", "${LIGHTPANDA_ADVERTISE_HOST:-lightpanda}", "--log-level", "error"]
+    # La imagen no trae curl ni wget para un healthcheck; el runner espera al
+    # servidor CDP por su cuenta antes de conectarse.
+    ports:
+      - "${LIGHTPANDA_PORT:-9222}:9222"
+
+  # ---------------- Pruebas unitarias del frontend sobre Lightpanda ----------------
+  # docker compose --profile test run --rm unit-web
+  unit-web:
+    image: node:22-alpine
+    container_name: optimiza-unit-web
+    profiles: ["test"]
+    depends_on:
+      - lightpanda
+    working_dir: /app
+    environment:
+      LIGHTPANDA_WS: ws://lightpanda:9222
+      # Escucha en todas las interfaces: Lightpanda corre en otro contenedor y
+      # necesita alcanzar este servidor. La dirección anunciada se calcula sola.
+      TEST_BIND: 0.0.0.0
+      NO_COLOR: "1"
+    volumes:
+      - .:/app
+    command: sh -c "npm install --silent --no-audit --no-fund --omit=optional puppeteer-core && node tests/unit-web/runner.mjs"
+
   # ---------------- Pruebas: docker compose --profile test run --rm tests ----------------
   tests:
     build:

@@ -1,0 +1,423 @@
+{
+  "session_id": "fixture",
+  "pregunta": "ingreso por region",
+  "estado": "ok",
+  "respuesta": "Ingreso total de los 7 primeros: **S/ 121.8 millones**. Lidera **Trujillo** con S/ 21.4 millones, el 17.5% del total mostrado. Los tres primeros concentran el 46.4% del total.",
+  "resumen": [
+    "Ingreso total de los 7 primeros: **S/ 121.8 millones**.",
+    "Lidera **Trujillo** con S/ 21.4 millones, el 17.5% del total mostrado.",
+    "Los tres primeros concentran el 46.4% del total."
+  ],
+  "respuesta_tecnica": "Calculo ingreso con SUM(ventas.ingreso) y por region usando las relaciones declaradas ventas.region_id=regiones.region_id. Lidera **Trujillo** con 21,373,334.25 (17.5% del total mostrado). Visualización elegida: barras (Dimensión categórica con una medida: barras ordenadas.)",
+  "titulo": "Ingreso por región",
+  "intencion": {
+    "intent": "KPI",
+    "confidence": 0.7149,
+    "latency_ms": 1.424,
+    "backend": "edge-logreg-es",
+    "fallback_used": false,
+    "scores": {
+      "KPI": 0.7149,
+      "comparacion": 0.1095,
+      "aclaracion": 0.0617,
+      "grafico": 0.051,
+      "exportacion": 0.0258,
+      "detalle": 0.0203,
+      "exploracion": 0.0168
+    },
+    "detalles": {
+      "train_ms": 49.4,
+      "train_accuracy": 0.9653,
+      "params": 14336
+    },
+    "etiqueta": "Indicador"
+  },
+  "sql": "SELECT regiones.region AS region,\n       SUM(ventas.ingreso) AS ingreso,\n       COUNT(*) AS ventas_contadas\nFROM ventas\n  LEFT JOIN regiones ON ventas.region_id = regiones.region_id\nGROUP BY 1\nORDER BY ingreso DESC\nLIMIT 5000",
+  "plan": {
+    "intent": "KPI",
+    "metrica": "ingreso_total",
+    "dimension": "regiones.region",
+    "grano_temporal": null,
+    "filtros": [],
+    "limite": null,
+    "tablas": [
+      "regiones",
+      "ventas"
+    ],
+    "tipo_resultado": "ranking",
+    "joins": [
+      {
+        "left": "ventas.region_id",
+        "right": "regiones.region_id",
+        "type": "many_to_one",
+        "declared": true
+      }
+    ],
+    "join_issue": null
+  },
+  "explicacion_plan": "Calculo ingreso con SUM(ventas.ingreso) y por region usando las relaciones declaradas ventas.region_id=regiones.region_id.",
+  "transformacion_duckdb": "SELECT region,\n       ingreso,\n       ROW_NUMBER() OVER (ORDER BY ingreso DESC) AS ranking,\n       ingreso / NULLIF(SUM(ingreso) OVER (), 0) AS participacion,\n       SUM(ingreso) OVER (ORDER BY ingreso DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n         / NULLIF(SUM(ingreso) OVER (), 0) AS participacion_acumulada\nFROM _resultado\nORDER BY ingreso DESC",
+  "validacion": {
+    "ok": true,
+    "errores": [],
+    "advertencias": [
+      "Se agregó LIMIT 5000 automáticamente.",
+      "Escaneo completo de una tabla de hechos sin filtro de fecha."
+    ],
+    "tablas": [
+      "regiones",
+      "ventas"
+    ],
+    "limite_aplicado": 5000,
+    "riesgo_full_scan": "medio",
+    "filas_estimadas": 40007
+  },
+  "columnas": [
+    "region",
+    "ingreso",
+    "ranking",
+    "participacion",
+    "participacion_acumulada"
+  ],
+  "columnas_meta": [
+    {
+      "nombre": "region",
+      "etiqueta": "Región",
+      "tipo": "texto"
+    },
+    {
+      "nombre": "ingreso",
+      "etiqueta": "Ingreso",
+      "tipo": "moneda"
+    },
+    {
+      "nombre": "ranking",
+      "etiqueta": "Posición",
+      "tipo": "entero"
+    },
+    {
+      "nombre": "participacion",
+      "etiqueta": "Participación",
+      "tipo": "porcentaje"
+    },
+    {
+      "nombre": "participacion_acumulada",
+      "etiqueta": "Participación acumulada",
+      "tipo": "porcentaje"
+    }
+  ],
+  "filas": [
+    {
+      "region": "Trujillo",
+      "ingreso": 21373334.24550001,
+      "ranking": 1,
+      "participacion": 0.175410813,
+      "participacion_acumulada": 0.175410813
+    },
+    {
+      "region": "Santiago",
+      "ingreso": 17997724.735000063,
+      "ranking": 2,
+      "participacion": 0.147707208,
+      "participacion_acumulada": 0.323118021
+    },
+    {
+      "region": "Bogotá",
+      "ingreso": 17133163.93299998,
+      "ranking": 3,
+      "participacion": 0.1406117632,
+      "participacion_acumulada": 0.4637297843
+    },
+    {
+      "region": "Cusco",
+      "ingreso": 17066311.423500028,
+      "ranking": 4,
+      "participacion": 0.1400631051,
+      "participacion_acumulada": 0.6037928894
+    },
+    {
+      "region": "Lima",
+      "ingreso": 16963895.2855,
+      "ranking": 5,
+      "participacion": 0.1392225766,
+      "participacion_acumulada": 0.743015466
+    },
+    {
+      "region": "Arequipa",
+      "ingreso": 16736573.625000047,
+      "ranking": 6,
+      "participacion": 0.1373569492,
+      "participacion_acumulada": 0.8803724152
+    },
+    {
+      "region": "Piura",
+      "ingreso": 14576298.409000048,
+      "ranking": 7,
+      "participacion": 0.1196275848,
+      "participacion_acumulada": 1.0
+    }
+  ],
+  "total_filas": 7,
+  "truncado": false,
+  "tarjetas_kpi": [
+    {
+      "label": "Ingreso total",
+      "valor": 121847301.65650019,
+      "formato": "moneda"
+    },
+    {
+      "label": "Registros",
+      "valor": 7,
+      "formato": "entero"
+    },
+    {
+      "label": "Mayor región",
+      "valor": "Trujillo",
+      "detalle": 21373334.24550001,
+      "formato": "texto",
+      "formato_detalle": "moneda"
+    },
+    {
+      "label": "Ingreso promedio",
+      "valor": 17406757.379500028,
+      "formato": "moneda"
+    }
+  ],
+  "grafico": {
+    "tipo": "barras",
+    "motivo": "Dimensión categórica con una medida: barras ordenadas.",
+    "spec": {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "description": "ingreso por region",
+      "mark": {
+        "type": "bar",
+        "cornerRadiusEnd": 3
+      },
+      "encoding": {
+        "x": {
+          "field": "region",
+          "type": "nominal",
+          "sort": "-y",
+          "title": "region"
+        },
+        "y": {
+          "field": "ingreso",
+          "type": "quantitative",
+          "title": "ingreso"
+        },
+        "tooltip": [
+          {
+            "field": "region",
+            "type": "nominal"
+          },
+          {
+            "field": "ingreso",
+            "type": "quantitative",
+            "format": ",.2f"
+          }
+        ]
+      }
+    },
+    "campos": {
+      "dimension": "region",
+      "medida": "ingreso",
+      "horizontal": false
+    }
+  },
+  "opciones": [],
+  "exportacion": null,
+  "pii_enmascarada": [],
+  "contexto_semantico": [
+    {
+      "id": "columna::regiones.region",
+      "tipo": "columna",
+      "score": 0.5136,
+      "score_vectorial": 0.5182,
+      "score_lexico": 0.5,
+      "texto": "columna region de regiones Nombre de la región o ciudad "
+    },
+    {
+      "id": "kpi::ingreso_total",
+      "tipo": "kpi",
+      "score": 0.5049,
+      "score_vectorial": 0.5065,
+      "score_lexico": 0.5,
+      "texto": "kpi Ingreso total ventas facturación revenue ingresos monto vendido Suma del ingreso neto de ventas SUM(ventas.ingreso)"
+    },
+    {
+      "id": "columna::regiones.region_id",
+      "tipo": "columna",
+      "score": 0.4831,
+      "score_vectorial": 0.4774,
+      "score_lexico": 0.5,
+      "texto": "columna region_id de regiones Identificador de la región "
+    }
+  ],
+  "pasos": [
+    {
+      "nombre": "clasificador_edge",
+      "detalle": "Intención «KPI» (confianza 0.71) con backend edge-logreg-es",
+      "ms": 1.424,
+      "extra": {
+        "intent": "KPI",
+        "confidence": 0.7149,
+        "latency_ms": 1.424,
+        "backend": "edge-logreg-es",
+        "fallback_used": false,
+        "scores": {
+          "KPI": 0.7149,
+          "comparacion": 0.1095,
+          "aclaracion": 0.0617,
+          "grafico": 0.051,
+          "exportacion": 0.0258,
+          "detalle": 0.0203,
+          "exploracion": 0.0168
+        },
+        "detalles": {
+          "train_ms": 49.4,
+          "train_accuracy": 0.9653,
+          "params": 14336
+        }
+      },
+      "titulo": "Entendí tu pregunta",
+      "descripcion": "Reconocí qué tipo de respuesta necesitas, en tu propio equipo, sin enviar nada a la nube."
+    },
+    {
+      "nombre": "retriever_vectorial",
+      "detalle": "12 fragmentos recuperados de 128 documentos (memory)",
+      "ms": 1.781,
+      "extra": {
+        "top": [
+          {
+            "id": "columna::regiones.region",
+            "score": 0.5136
+          },
+          {
+            "id": "kpi::ingreso_total",
+            "score": 0.5049
+          },
+          {
+            "id": "columna::regiones.region_id",
+            "score": 0.4831
+          },
+          {
+            "id": "columna::ventas.region_id",
+            "score": 0.4695
+          },
+          {
+            "id": "columna::ventas.ingreso",
+            "score": 0.4636
+          }
+        ]
+      },
+      "titulo": "Busqué en el catálogo",
+      "descripcion": "Encontré las tablas, columnas e indicadores que corresponden a tu pregunta."
+    },
+    {
+      "nombre": "generacion_sql",
+      "detalle": "Plan: ranking · origen planificador_determinista",
+      "ms": 0.0,
+      "extra": {
+        "plan": {
+          "intent": "KPI",
+          "metrica": "ingreso_total",
+          "dimension": "regiones.region",
+          "grano_temporal": null,
+          "filtros": [],
+          "limite": null,
+          "tablas": [
+            "regiones",
+            "ventas"
+          ],
+          "tipo_resultado": "ranking",
+          "joins": [
+            {
+              "left": "ventas.region_id",
+              "right": "regiones.region_id",
+              "type": "many_to_one",
+              "declared": true
+            }
+          ],
+          "join_issue": null
+        }
+      },
+      "titulo": "Armé la consulta",
+      "descripcion": "Traduje la pregunta a una consulta sobre la base de datos."
+    },
+    {
+      "nombre": "validacion_sql",
+      "detalle": "SQL válido",
+      "ms": 0.165,
+      "extra": {
+        "ok": true,
+        "errores": [],
+        "advertencias": [
+          "Se agregó LIMIT 5000 automáticamente.",
+          "Escaneo completo de una tabla de hechos sin filtro de fecha."
+        ],
+        "tablas": [
+          "regiones",
+          "ventas"
+        ],
+        "limite_aplicado": 5000,
+        "riesgo_full_scan": "medio",
+        "filas_estimadas": 40007
+      },
+      "titulo": "Revisé que fuera segura",
+      "descripcion": "Verifiqué que solo se lea información y que no se consulte de más."
+    },
+    {
+      "nombre": "ejecucion_cache",
+      "detalle": "DuckDB sobre la copia materializada de Redshift, 7 filas · copia local vigente (menos de 720 min)",
+      "ms": 8.175,
+      "extra": {
+        "motor": "duckdb",
+        "ruta": "duckdb_cache",
+        "motivo": "copia local vigente (menos de 720 min)"
+      },
+      "titulo": "Consulté la copia local",
+      "descripcion": "Usé la copia de los datos que ya se había traído del almacén, sin volver a molestarlo."
+    },
+    {
+      "nombre": "transformacion_duckdb",
+      "detalle": "Transformación DuckDB aplicada (7 filas, 5 columnas)",
+      "ms": 5.768,
+      "extra": {
+        "sql": "SELECT region,\n       ingreso,\n       ROW_NUMBER() OVER (ORDER BY ingreso DESC) AS ranking,\n       ingreso / NULLIF(SUM(ingreso) OVER (), 0) AS participacion,\n       SUM(ingreso) OVER (ORDER BY ingreso DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n         / NULLIF(SUM(ingreso) OVER (), 0) AS participacion_acumulada\nFROM _resultado\nORDER BY ingreso DESC"
+      },
+      "titulo": "Calculé totales y variaciones",
+      "descripcion": "Agregué acumulados, participaciones y comparaciones contra el periodo anterior."
+    },
+    {
+      "nombre": "enmascaramiento_pii",
+      "detalle": "Aplicando política de PII",
+      "ms": 0.12,
+      "titulo": "Protegí los datos personales",
+      "descripcion": "Oculté correos, documentos y nombres completos."
+    },
+    {
+      "nombre": "visualizacion",
+      "detalle": "Gráfico elegido: barras — Dimensión categórica con una medida: barras ordenadas.",
+      "ms": 3.732,
+      "titulo": "Elegí el gráfico",
+      "descripcion": "Seleccioné la visualización que mejor representa el resultado."
+    }
+  ],
+  "metricas": {
+    "latencia_total_ms": 32.87,
+    "latencia_clasificador_ms": 1.424,
+    "costo_llm_usd": 0.0,
+    "tokens": {
+      "input": 0,
+      "output": 0
+    },
+    "origen_sql": "planificador_determinista",
+    "fuente": "duckdb_cache",
+    "fuente_configurada": "redshift",
+    "modo_demo": false,
+    "max_rows": 5000,
+    "segundos": 0.033,
+    "moneda": "S/",
+    "fecha_datos": "2025-09-30"
+  }
+}

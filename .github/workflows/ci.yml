@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend · pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+      - name: Pruebas unitarias y de API
+        run: pytest -q
+
+  frontend:
+    name: Frontend · pruebas unitarias sobre Lightpanda
+    runs-on: ubuntu-latest
+    services:
+      lightpanda:
+        image: lightpanda/browser:nightly
+        ports: ["9222:9222"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instalar dependencias
+        run: npm install --no-audit --no-fund
+      - name: Pruebas unitarias del frontend
+        env:
+          LIGHTPANDA_WS: ws://127.0.0.1:9222
+          NO_COLOR: "1"
+        run: npm run test:unit
+
+  integracion:
+    name: Integración · almacén y pruebas de interfaz
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Levantar el almacén y la aplicación
+        run: |
+          cp .env.example .env
+          docker compose up -d --build
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8000/api/salud > /dev/null && break
+            sleep 2
+          done
+      - name: Pruebas de integración contra el almacén
+        run: docker compose --profile test run --rm tests
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Pruebas de interfaz
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npx playwright test
+      - name: Diagnóstico si algo falló
+        if: failure()
+        run: docker compose logs --tail 80

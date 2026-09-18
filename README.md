@@ -313,16 +313,30 @@ tenga una respuesta real. Regenerar: `python -m backend.app.seed.generate_seed`.
 
 ## Pruebas
 
-```bash
-# Unitarias e integración (40 pruebas)
-docker compose --profile test run --rm tests
-# o en local
-.venv/bin/python -m pytest -q
+Tres niveles, del más rápido al más completo:
 
-# E2E de la interfaz (requiere la app corriendo)
+```bash
+# 1. Backend: 72 pruebas de unidad, API e integración
+.venv/bin/python -m pytest -q
+docker compose --profile test run --rm tests        # las mismas dentro de la imagen
+
+# 2. Frontend: 64 pruebas unitarias en un navegador real, en ~60 ms
+npm run lightpanda:install                          # una sola vez
+npm run test:unit
+docker compose --profile test up -d lightpanda      # o sin instalar nada:
+docker compose --profile test run --rm unit-web
+
+# 3. Interfaz de punta a punta (requiere la app corriendo)
 npm install && npx playwright install chromium
 npx playwright test
 ```
+
+Las pruebas unitarias del frontend corren sobre [Lightpanda](https://lightpanda.io), un
+navegador headless sin motor gráfico: el suite completo tarda ~60 ms, contra ~430 ms del
+mismo suite en Chromium. Ejecutan los módulos reales de `frontend/static/` contra respuestas
+capturadas de la API, así que detectan un cambio de contrato del backend sin levantar el
+servidor. El detalle está en [tests/unit-web/README.md](tests/unit-web/README.md); para
+contrastar un resultado, `npm run test:unit:chromium` corre lo mismo en Chromium.
 
 Las pruebas marcadas `integracion` corren contra el almacén levantado y se saltan solas si no
 está disponible:
@@ -373,7 +387,9 @@ backend/app/     config, agent/ (clasificador, planner, validador, gráficos, or
 docker/          init del almacén (esquema, usuario de solo lectura, permisos)
 infra/           Terraform para Redshift Serverless y script de bootstrap
 frontend/static/ chat, panel de resultados, formatos de negocio, gráficos y panel admin
-tests/           pytest (unitarias + API) y e2e/ (Playwright)
+tests/           pytest (unitarias, API e integración), unit-web/ (motor propio sobre
+                 Lightpanda para el frontend) y e2e/ (Playwright)
+scripts/         instalación de Lightpanda
 docs/            ARCHITECTURE.md y DEMO_SCRIPT.md
 ```
 

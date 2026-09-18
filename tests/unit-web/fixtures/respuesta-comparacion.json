@@ -1,0 +1,468 @@
+{
+  "session_id": "fixture",
+  "pregunta": "que productos cayeron este trimestre",
+  "estado": "ok",
+  "respuesta": "**20 de 20** cayeron frente al periodo anterior. La mayor caída es **Calzado modelo 070**, con 83.4 % menos.",
+  "resumen": [
+    "**20 de 20** cayeron frente al periodo anterior.",
+    "La mayor caída es **Calzado modelo 070**, con 83.4 % menos."
+  ],
+  "respuesta_tecnica": "Comparo margen por producto entre el trimestre en curso (desde 2025-07-01) y el trimestre anterior (desde 2025-04-01), usando agregación condicional en una sola pasada sobre la tabla de hechos. 20 de 20 filas cayeron respecto al periodo anterior; la mayor caída es -83.4%. Visualización elegida: barras (Dimensión categórica con una medida: barras ordenadas.)",
+  "titulo": "Margen por producto",
+  "intencion": {
+    "intent": "comparacion",
+    "confidence": 0.5716,
+    "latency_ms": 0.187,
+    "backend": "edge-logreg-es",
+    "fallback_used": false,
+    "scores": {
+      "comparacion": 0.5716,
+      "exploracion": 0.1374,
+      "aclaracion": 0.1049,
+      "KPI": 0.0823,
+      "detalle": 0.0367,
+      "exportacion": 0.0338,
+      "grafico": 0.0334
+    },
+    "detalles": {
+      "train_ms": 49.4,
+      "train_accuracy": 0.9653,
+      "params": 14336
+    },
+    "etiqueta": "Comparación"
+  },
+  "sql": "WITH comparacion AS (\n  SELECT productos.nombre AS producto,\n         SUM(CASE WHEN ventas.fecha >= DATE '2025-07-01' THEN ventas.margen ELSE 0 END) AS margen_actual,\n         SUM(CASE WHEN ventas.fecha >= DATE '2025-04-01' AND ventas.fecha < DATE '2025-07-01' THEN ventas.margen ELSE 0 END) AS margen_anterior\n  FROM ventas\n  LEFT JOIN productos ON ventas.producto_id = productos.producto_id\n  WHERE ventas.fecha >= DATE '2025-04-01'\n  GROUP BY 1\n)\nSELECT producto,\n       margen_actual,\n       margen_anterior,\n       margen_actual - margen_anterior AS variacion,\n       (margen_actual - margen_anterior) / NULLIF(margen_anterior, 0) AS variacion_pct\nFROM comparacion\nWHERE margen_anterior > 0\nORDER BY variacion_pct ASC\nLIMIT 20",
+  "plan": {
+    "intent": "comparacion",
+    "metrica": "margen_total",
+    "dimension": "productos.nombre",
+    "grano_temporal": null,
+    "filtros": [
+      "trimestre en curso"
+    ],
+    "limite": 20,
+    "tablas": [
+      "productos",
+      "ventas"
+    ],
+    "tipo_resultado": "comparacion",
+    "joins": [
+      {
+        "left": "ventas.producto_id",
+        "right": "productos.producto_id",
+        "type": "many_to_one",
+        "declared": true
+      }
+    ],
+    "join_issue": null
+  },
+  "explicacion_plan": "Comparo margen por producto entre el trimestre en curso (desde 2025-07-01) y el trimestre anterior (desde 2025-04-01), usando agregación condicional en una sola pasada sobre la tabla de hechos.",
+  "transformacion_duckdb": "SELECT *,\n       CASE WHEN variacion_pct < -0.05 THEN 'cayó'\n            WHEN variacion_pct > 0.05 THEN 'creció'\n            ELSE 'estable' END AS tendencia,\n       ROW_NUMBER() OVER (ORDER BY variacion_pct ASC) AS ranking_caida\nFROM _resultado\nORDER BY variacion_pct ASC",
+  "validacion": {
+    "ok": true,
+    "errores": [],
+    "advertencias": [],
+    "tablas": [
+      "productos",
+      "ventas"
+    ],
+    "limite_aplicado": 20,
+    "riesgo_full_scan": "bajo",
+    "filas_estimadas": 40120
+  },
+  "columnas": [
+    "producto",
+    "margen_actual",
+    "margen_anterior",
+    "variacion",
+    "variacion_pct",
+    "tendencia",
+    "ranking_caida"
+  ],
+  "columnas_meta": [
+    {
+      "nombre": "producto",
+      "etiqueta": "Producto",
+      "tipo": "texto"
+    },
+    {
+      "nombre": "margen_actual",
+      "etiqueta": "Margen actual",
+      "tipo": "moneda"
+    },
+    {
+      "nombre": "margen_anterior",
+      "etiqueta": "Margen anterior",
+      "tipo": "moneda"
+    },
+    {
+      "nombre": "variacion",
+      "etiqueta": "Variación",
+      "tipo": "moneda"
+    },
+    {
+      "nombre": "variacion_pct",
+      "etiqueta": "Variación %",
+      "tipo": "porcentaje"
+    },
+    {
+      "nombre": "tendencia",
+      "etiqueta": "Tendencia",
+      "tipo": "texto"
+    },
+    {
+      "nombre": "ranking_caida",
+      "etiqueta": "Posición por caída",
+      "tipo": "entero"
+    }
+  ],
+  "filas": [
+    {
+      "producto": "Calzado modelo 070",
+      "margen_actual": 7768.323,
+      "margen_anterior": 46712.87,
+      "variacion": -38944.547,
+      "variacion_pct": -0.833700584,
+      "tendencia": "cayó",
+      "ranking_caida": 1
+    },
+    {
+      "producto": "Calzado modelo 028",
+      "margen_actual": 22758.9885,
+      "margen_anterior": 82674.9100000001,
+      "variacion": -59915.9215000001,
+      "variacion_pct": -0.7247171058,
+      "tendencia": "cayó",
+      "ranking_caida": 2
+    },
+    {
+      "producto": "Ropa modelo 120",
+      "margen_actual": 24590.2725,
+      "margen_anterior": 85186.81,
+      "variacion": -60596.5375,
+      "variacion_pct": -0.7113370896,
+      "tendencia": "cayó",
+      "ranking_caida": 3
+    },
+    {
+      "producto": "Ropa modelo 050",
+      "margen_actual": 4557.348,
+      "margen_anterior": 15444.27,
+      "variacion": -10886.922,
+      "variacion_pct": -0.7049165807,
+      "tendencia": "cayó",
+      "ranking_caida": 4
+    },
+    {
+      "producto": "Ropa modelo 058",
+      "margen_actual": 41453.1405,
+      "margen_anterior": 138351.91,
+      "variacion": -96898.7695,
+      "variacion_pct": -0.7003789792,
+      "tendencia": "cayó",
+      "ranking_caida": 5
+    },
+    {
+      "producto": "Accesorios modelo 025",
+      "margen_actual": 1913.5845,
+      "margen_anterior": 6361.51,
+      "variacion": -4447.9255,
+      "variacion_pct": -0.6991933519,
+      "tendencia": "cayó",
+      "ranking_caida": 6
+    },
+    {
+      "producto": "Ropa modelo 083",
+      "margen_actual": 17289.8415,
+      "margen_anterior": 54304.02,
+      "variacion": -37014.1785,
+      "variacion_pct": -0.6816102841,
+      "tendencia": "cayó",
+      "ranking_caida": 7
+    },
+    {
+      "producto": "Accesorios modelo 067",
+      "margen_actual": 39079.431,
+      "margen_anterior": 120075.72,
+      "variacion": -80996.289,
+      "variacion_pct": -0.6745434381,
+      "tendencia": "cayó",
+      "ranking_caida": 8
+    }
+  ],
+  "total_filas": 20,
+  "truncado": false,
+  "tarjetas_kpi": [
+    {
+      "label": "Margen actual total",
+      "valor": 522980.496,
+      "formato": "moneda"
+    },
+    {
+      "label": "Registros",
+      "valor": 20,
+      "formato": "entero"
+    },
+    {
+      "label": "Mayor caída",
+      "valor": "Calzado modelo 070",
+      "detalle": -0.8337005840146408,
+      "formato": "texto",
+      "formato_detalle": "porcentaje"
+    },
+    {
+      "label": "Margen actual promedio",
+      "valor": 26149.0248,
+      "formato": "moneda"
+    }
+  ],
+  "grafico": {
+    "tipo": "barras",
+    "motivo": "Dimensión categórica con una medida: barras ordenadas.",
+    "spec": {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "description": "Variación de margen",
+      "mark": {
+        "type": "bar",
+        "cornerRadiusEnd": 3
+      },
+      "encoding": {
+        "y": {
+          "field": "producto",
+          "type": "nominal",
+          "sort": "-x",
+          "title": "producto"
+        },
+        "x": {
+          "field": "variacion_pct",
+          "type": "quantitative",
+          "title": "variacion_pct"
+        },
+        "color": {
+          "field": "variacion_pct",
+          "type": "quantitative",
+          "scale": {
+            "range": [
+              "#b42318",
+              "#f3c9c4",
+              "#0f8a5f"
+            ],
+            "domainMid": 0
+          },
+          "legend": null
+        },
+        "tooltip": [
+          {
+            "field": "producto",
+            "type": "nominal"
+          },
+          {
+            "field": "variacion_pct",
+            "type": "quantitative",
+            "format": ",.2f"
+          }
+        ]
+      }
+    },
+    "campos": {
+      "dimension": "producto",
+      "medida": "variacion_pct",
+      "horizontal": true
+    }
+  },
+  "opciones": [],
+  "exportacion": null,
+  "pii_enmascarada": [],
+  "contexto_semantico": [
+    {
+      "id": "tabla::productos",
+      "tipo": "tabla",
+      "score": 0.428,
+      "score_vectorial": 0.4873,
+      "score_lexico": 0.25,
+      "texto": "tabla productos productos sku artículos catálogo items Catálogo de productos con categoría, subcategoría, costo y precio de lista."
+    },
+    {
+      "id": "columna::dim_fechas.trimestre",
+      "tipo": "columna",
+      "score": 0.4022,
+      "score_vectorial": 0.4529,
+      "score_lexico": 0.25,
+      "texto": "columna trimestre de dim_fechas Trimestre del año "
+    },
+    {
+      "id": "glosario::trimestre",
+      "tipo": "glosario",
+      "score": 0.3796,
+      "score_vectorial": 0.4228,
+      "score_lexico": 0.25,
+      "texto": "trimestre Bloque de tres meses del año calendario, campo dim_fechas.trimestre"
+    }
+  ],
+  "pasos": [
+    {
+      "nombre": "clasificador_edge",
+      "detalle": "Intención «comparacion» (confianza 0.57) con backend edge-logreg-es",
+      "ms": 0.187,
+      "extra": {
+        "intent": "comparacion",
+        "confidence": 0.5716,
+        "latency_ms": 0.187,
+        "backend": "edge-logreg-es",
+        "fallback_used": false,
+        "scores": {
+          "comparacion": 0.5716,
+          "exploracion": 0.1374,
+          "aclaracion": 0.1049,
+          "KPI": 0.0823,
+          "detalle": 0.0367,
+          "exportacion": 0.0338,
+          "grafico": 0.0334
+        },
+        "detalles": {
+          "train_ms": 49.4,
+          "train_accuracy": 0.9653,
+          "params": 14336
+        }
+      },
+      "titulo": "Entendí tu pregunta",
+      "descripcion": "Reconocí qué tipo de respuesta necesitas, en tu propio equipo, sin enviar nada a la nube."
+    },
+    {
+      "nombre": "retriever_vectorial",
+      "detalle": "12 fragmentos recuperados de 128 documentos (memory)",
+      "ms": 1.02,
+      "extra": {
+        "top": [
+          {
+            "id": "tabla::productos",
+            "score": 0.428
+          },
+          {
+            "id": "columna::dim_fechas.trimestre",
+            "score": 0.4022
+          },
+          {
+            "id": "glosario::trimestre",
+            "score": 0.3796
+          },
+          {
+            "id": "columna::productos.producto_id",
+            "score": 0.3584
+          },
+          {
+            "id": "glosario::margen",
+            "score": 0.3502
+          }
+        ]
+      },
+      "titulo": "Busqué en el catálogo",
+      "descripcion": "Encontré las tablas, columnas e indicadores que corresponden a tu pregunta."
+    },
+    {
+      "nombre": "generacion_sql",
+      "detalle": "Plan: comparacion · origen planificador_determinista",
+      "ms": 0.0,
+      "extra": {
+        "plan": {
+          "intent": "comparacion",
+          "metrica": "margen_total",
+          "dimension": "productos.nombre",
+          "grano_temporal": null,
+          "filtros": [
+            "trimestre en curso"
+          ],
+          "limite": 20,
+          "tablas": [
+            "productos",
+            "ventas"
+          ],
+          "tipo_resultado": "comparacion",
+          "joins": [
+            {
+              "left": "ventas.producto_id",
+              "right": "productos.producto_id",
+              "type": "many_to_one",
+              "declared": true
+            }
+          ],
+          "join_issue": null
+        }
+      },
+      "titulo": "Armé la consulta",
+      "descripcion": "Traduje la pregunta a una consulta sobre la base de datos."
+    },
+    {
+      "nombre": "validacion_sql",
+      "detalle": "SQL válido",
+      "ms": 0.114,
+      "extra": {
+        "ok": true,
+        "errores": [],
+        "advertencias": [],
+        "tablas": [
+          "productos",
+          "ventas"
+        ],
+        "limite_aplicado": 20,
+        "riesgo_full_scan": "bajo",
+        "filas_estimadas": 40120
+      },
+      "titulo": "Revisé que fuera segura",
+      "descripcion": "Verifiqué que solo se lea información y que no se consulte de más."
+    },
+    {
+      "nombre": "ejecucion_cache",
+      "detalle": "DuckDB sobre la copia materializada de Redshift, 20 filas · copia local vigente (menos de 720 min)",
+      "ms": 3.341,
+      "extra": {
+        "motor": "duckdb",
+        "ruta": "duckdb_cache",
+        "motivo": "copia local vigente (menos de 720 min)"
+      },
+      "titulo": "Consulté la copia local",
+      "descripcion": "Usé la copia de los datos que ya se había traído del almacén, sin volver a molestarlo."
+    },
+    {
+      "nombre": "transformacion_duckdb",
+      "detalle": "Transformación DuckDB aplicada (20 filas, 7 columnas)",
+      "ms": 2.316,
+      "extra": {
+        "sql": "SELECT *,\n       CASE WHEN variacion_pct < -0.05 THEN 'cayó'\n            WHEN variacion_pct > 0.05 THEN 'creció'\n            ELSE 'estable' END AS tendencia,\n       ROW_NUMBER() OVER (ORDER BY variacion_pct ASC) AS ranking_caida\nFROM _resultado\nORDER BY variacion_pct ASC"
+      },
+      "titulo": "Calculé totales y variaciones",
+      "descripcion": "Agregué acumulados, participaciones y comparaciones contra el periodo anterior."
+    },
+    {
+      "nombre": "enmascaramiento_pii",
+      "detalle": "Aplicando política de PII",
+      "ms": 0.024,
+      "titulo": "Protegí los datos personales",
+      "descripcion": "Oculté correos, documentos y nombres completos."
+    },
+    {
+      "nombre": "visualizacion",
+      "detalle": "Gráfico elegido: barras — Dimensión categórica con una medida: barras ordenadas.",
+      "ms": 1.79,
+      "titulo": "Elegí el gráfico",
+      "descripcion": "Seleccioné la visualización que mejor representa el resultado."
+    }
+  ],
+  "metricas": {
+    "latencia_total_ms": 15.91,
+    "latencia_clasificador_ms": 0.187,
+    "costo_llm_usd": 0.0,
+    "tokens": {
+      "input": 0,
+      "output": 0
+    },
+    "origen_sql": "planificador_determinista",
+    "fuente": "duckdb_cache",
+    "fuente_configurada": "redshift",
+    "modo_demo": false,
+    "max_rows": 5000,
+    "segundos": 0.016,
+    "moneda": "S/",
+    "fecha_datos": "2025-09-30"
+  }
+}

@@ -12,3 +12,6 @@ playwright-report/
 
 # macOS
 .DS_Store
+
+# Binario de Lightpanda (se instala con scripts/instalar_lightpanda.sh)
+bin/

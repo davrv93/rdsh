@@ -1,0 +1,426 @@
+{
+  "session_id": "fixture",
+  "pregunta": "ventas por mes",
+  "estado": "ok",
+  "respuesta": "Ingreso total del periodo: **S/ 121.8 millones**. El mejor mes fue **jun 2025** con S/ 8.8 millones. El último periodo bajó 23.7 % frente al anterior.",
+  "resumen": [
+    "Ingreso total del periodo: **S/ 121.8 millones**.",
+    "El mejor mes fue **jun 2025** con S/ 8.8 millones.",
+    "El último periodo bajó 23.7 % frente al anterior."
+  ],
+  "respuesta_tecnica": "Calculo ingreso con SUM(ventas.ingreso) agrupado por mes. El total de ingreso en el periodo es 121,847,301.66 y el pico está en 2025-06-01 con 8,825,050.55. Visualización elegida: linea (Hay una dimensión temporal: la serie muestra la evolución.)",
+  "titulo": "Ingreso por mes",
+  "intencion": {
+    "intent": "KPI",
+    "confidence": 0.7812,
+    "latency_ms": 0.122,
+    "backend": "edge-logreg-es",
+    "fallback_used": false,
+    "scores": {
+      "KPI": 0.7812,
+      "grafico": 0.0916,
+      "comparacion": 0.0358,
+      "aclaracion": 0.031,
+      "detalle": 0.0234,
+      "exportacion": 0.0213,
+      "exploracion": 0.0157
+    },
+    "detalles": {
+      "train_ms": 49.4,
+      "train_accuracy": 0.9653,
+      "params": 14336
+    },
+    "etiqueta": "Indicador"
+  },
+  "sql": "SELECT CAST(date_trunc('month', ventas.fecha) AS DATE) AS periodo,\n       SUM(ventas.ingreso) AS ingreso,\n       COUNT(*) AS ventas_contadas\nFROM ventas\nGROUP BY 1\nORDER BY periodo\nLIMIT 5000",
+  "plan": {
+    "intent": "KPI",
+    "metrica": "ingreso_total",
+    "dimension": null,
+    "grano_temporal": "mes",
+    "filtros": [],
+    "limite": null,
+    "tablas": [
+      "ventas"
+    ],
+    "tipo_resultado": "serie",
+    "joins": [],
+    "join_issue": null
+  },
+  "explicacion_plan": "Calculo ingreso con SUM(ventas.ingreso) agrupado por mes.",
+  "transformacion_duckdb": "SELECT periodo,\n       ingreso,\n       ingreso - LAG(ingreso) OVER (ORDER BY periodo) AS variacion_periodo,\n       (ingreso - LAG(ingreso) OVER (ORDER BY periodo))\n         / NULLIF(LAG(ingreso) OVER (ORDER BY periodo), 0) AS variacion_pct,\n       SUM(ingreso) OVER (ORDER BY periodo ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS acumulado,\n       AVG(ingreso) OVER (ORDER BY periodo ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS media_movil_3\nFROM _resultado\nORDER BY periodo",
+  "validacion": {
+    "ok": true,
+    "errores": [],
+    "advertencias": [
+      "Se agregó LIMIT 5000 automáticamente.",
+      "Escaneo completo de una tabla de hechos sin filtro de fecha."
+    ],
+    "tablas": [
+      "ventas"
+    ],
+    "limite_aplicado": 5000,
+    "riesgo_full_scan": "medio",
+    "filas_estimadas": 40000
+  },
+  "columnas": [
+    "periodo",
+    "ingreso",
+    "variacion_periodo",
+    "variacion_pct",
+    "acumulado",
+    "media_movil_3"
+  ],
+  "columnas_meta": [
+    {
+      "nombre": "periodo",
+      "etiqueta": "Periodo",
+      "tipo": "fecha"
+    },
+    {
+      "nombre": "ingreso",
+      "etiqueta": "Ingreso",
+      "tipo": "moneda"
+    },
+    {
+      "nombre": "variacion_periodo",
+      "etiqueta": "Variación vs periodo anterior",
+      "tipo": "moneda"
+    },
+    {
+      "nombre": "variacion_pct",
+      "etiqueta": "Variación %",
+      "tipo": "porcentaje"
+    },
+    {
+      "nombre": "acumulado",
+      "etiqueta": "Acumulado",
+      "tipo": "moneda"
+    },
+    {
+      "nombre": "media_movil_3",
+      "etiqueta": "Promedio de 3 periodos",
+      "tipo": "moneda"
+    }
+  ],
+  "filas": [
+    {
+      "periodo": "2024-01-01",
+      "ingreso": 2725251.3099999954,
+      "variacion_periodo": null,
+      "variacion_pct": null,
+      "acumulado": 2725251.3099999954,
+      "media_movil_3": 2725251.3099999954
+    },
+    {
+      "periodo": "2024-02-01",
+      "ingreso": 4035261.21,
+      "variacion_periodo": 1310009.9000000046,
+      "variacion_pct": 0.4806932466,
+      "acumulado": 6760512.519999996,
+      "media_movil_3": 3380256.259999998
+    },
+    {
+      "periodo": "2024-03-01",
+      "ingreso": 5721594.469999993,
+      "variacion_periodo": 1686333.2599999933,
+      "variacion_pct": 0.4178994053,
+      "acumulado": 12482106.989999989,
+      "media_movil_3": 4160702.3299999963
+    },
+    {
+      "periodo": "2024-04-01",
+      "ingreso": 6677033.6099999985,
+      "variacion_periodo": 955439.1400000053,
+      "variacion_pct": 0.1669882661,
+      "acumulado": 19159140.599999987,
+      "media_movil_3": 5477963.096666664
+    },
+    {
+      "periodo": "2024-05-01",
+      "ingreso": 8072836.639999986,
+      "variacion_periodo": 1395803.0299999872,
+      "variacion_pct": 0.2090453803,
+      "acumulado": 27231977.239999972,
+      "media_movil_3": 6823821.573333326
+    },
+    {
+      "periodo": "2024-06-01",
+      "ingreso": 8139933.3200000115,
+      "variacion_periodo": 67096.6800000258,
+      "variacion_pct": 0.0083114131,
+      "acumulado": 35371910.55999999,
+      "media_movil_3": 7629934.5233333325
+    },
+    {
+      "periodo": "2024-07-01",
+      "ingreso": 7762334.53999999,
+      "variacion_periodo": -377598.7800000217,
+      "variacion_pct": -0.0463884365,
+      "acumulado": 43134245.09999998,
+      "media_movil_3": 7991701.499999995
+    },
+    {
+      "periodo": "2024-08-01",
+      "ingreso": 6846017.209999997,
+      "variacion_periodo": -916317.3299999926,
+      "variacion_pct": -0.1180466167,
+      "acumulado": 49980262.30999997,
+      "media_movil_3": 7582761.69
+    }
+  ],
+  "total_filas": 21,
+  "truncado": false,
+  "tarjetas_kpi": [
+    {
+      "label": "Ingreso total",
+      "valor": 121847301.6565,
+      "formato": "moneda"
+    },
+    {
+      "label": "Registros",
+      "valor": 21,
+      "formato": "entero"
+    },
+    {
+      "label": "Mejor periodo",
+      "valor": "jun 2025",
+      "detalle": 8825050.550000012,
+      "formato": "texto",
+      "formato_detalle": "moneda"
+    },
+    {
+      "label": "Ingreso promedio",
+      "valor": 5802252.459833333,
+      "formato": "moneda"
+    }
+  ],
+  "grafico": {
+    "tipo": "linea",
+    "motivo": "Hay una dimensión temporal: la serie muestra la evolución.",
+    "spec": {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "description": "Evolución de ingreso",
+      "mark": {
+        "type": "line",
+        "point": true,
+        "interpolate": "monotone"
+      },
+      "encoding": {
+        "x": {
+          "field": "periodo",
+          "type": "temporal",
+          "title": "periodo"
+        },
+        "y": {
+          "field": "ingreso",
+          "type": "quantitative",
+          "title": "ingreso"
+        },
+        "tooltip": [
+          {
+            "field": "periodo",
+            "type": "temporal"
+          },
+          {
+            "field": "ingreso",
+            "type": "quantitative",
+            "format": ",.2f"
+          }
+        ]
+      }
+    },
+    "campos": {
+      "x": "periodo",
+      "y": "ingreso",
+      "serie": null
+    }
+  },
+  "opciones": [],
+  "exportacion": null,
+  "pii_enmascarada": [],
+  "contexto_semantico": [
+    {
+      "id": "tabla::ventas",
+      "tipo": "tabla",
+      "score": 0.494,
+      "score_vectorial": 0.492,
+      "score_lexico": 0.5,
+      "texto": "tabla ventas ventas facturación transacciones ingresos pedidos ticket Hecho de ventas transaccionales. Una fila por venta con ingreso, costo, margen, unidades y"
+    },
+    {
+      "id": "kpi::ingreso_total",
+      "tipo": "kpi",
+      "score": 0.4675,
+      "score_vectorial": 0.4566,
+      "score_lexico": 0.5,
+      "texto": "kpi Ingreso total ventas facturación revenue ingresos monto vendido Suma del ingreso neto de ventas SUM(ventas.ingreso)"
+    },
+    {
+      "id": "columna::ventas.venta_id",
+      "tipo": "columna",
+      "score": 0.429,
+      "score_vectorial": 0.4053,
+      "score_lexico": 0.5,
+      "texto": "columna venta_id de ventas Identificador único de la venta "
+    }
+  ],
+  "pasos": [
+    {
+      "nombre": "clasificador_edge",
+      "detalle": "Intención «KPI» (confianza 0.78) con backend edge-logreg-es",
+      "ms": 0.122,
+      "extra": {
+        "intent": "KPI",
+        "confidence": 0.7812,
+        "latency_ms": 0.122,
+        "backend": "edge-logreg-es",
+        "fallback_used": false,
+        "scores": {
+          "KPI": 0.7812,
+          "grafico": 0.0916,
+          "comparacion": 0.0358,
+          "aclaracion": 0.031,
+          "detalle": 0.0234,
+          "exportacion": 0.0213,
+          "exploracion": 0.0157
+        },
+        "detalles": {
+          "train_ms": 49.4,
+          "train_accuracy": 0.9653,
+          "params": 14336
+        }
+      },
+      "titulo": "Entendí tu pregunta",
+      "descripcion": "Reconocí qué tipo de respuesta necesitas, en tu propio equipo, sin enviar nada a la nube."
+    },
+    {
+      "nombre": "retriever_vectorial",
+      "detalle": "12 fragmentos recuperados de 128 documentos (memory)",
+      "ms": 0.739,
+      "extra": {
+        "top": [
+          {
+            "id": "tabla::ventas",
+            "score": 0.494
+          },
+          {
+            "id": "kpi::ingreso_total",
+            "score": 0.4675
+          },
+          {
+            "id": "columna::ventas.venta_id",
+            "score": 0.429
+          },
+          {
+            "id": "columna::ventas.ingreso",
+            "score": 0.4282
+          },
+          {
+            "id": "kpi::ticket_promedio",
+            "score": 0.4195
+          }
+        ]
+      },
+      "titulo": "Busqué en el catálogo",
+      "descripcion": "Encontré las tablas, columnas e indicadores que corresponden a tu pregunta."
+    },
+    {
+      "nombre": "generacion_sql",
+      "detalle": "Plan: serie · origen planificador_determinista",
+      "ms": 0.0,
+      "extra": {
+        "plan": {
+          "intent": "KPI",
+          "metrica": "ingreso_total",
+          "dimension": null,
+          "grano_temporal": "mes",
+          "filtros": [],
+          "limite": null,
+          "tablas": [
+            "ventas"
+          ],
+          "tipo_resultado": "serie",
+          "joins": [],
+          "join_issue": null
+        }
+      },
+      "titulo": "Armé la consulta",
+      "descripcion": "Traduje la pregunta a una consulta sobre la base de datos."
+    },
+    {
+      "nombre": "validacion_sql",
+      "detalle": "SQL válido",
+      "ms": 0.037,
+      "extra": {
+        "ok": true,
+        "errores": [],
+        "advertencias": [
+          "Se agregó LIMIT 5000 automáticamente.",
+          "Escaneo completo de una tabla de hechos sin filtro de fecha."
+        ],
+        "tablas": [
+          "ventas"
+        ],
+        "limite_aplicado": 5000,
+        "riesgo_full_scan": "medio",
+        "filas_estimadas": 40000
+      },
+      "titulo": "Revisé que fuera segura",
+      "descripcion": "Verifiqué que solo se lea información y que no se consulte de más."
+    },
+    {
+      "nombre": "ejecucion_cache",
+      "detalle": "DuckDB sobre la copia materializada de Redshift, 21 filas · copia local vigente (menos de 720 min)",
+      "ms": 2.571,
+      "extra": {
+        "motor": "duckdb",
+        "ruta": "duckdb_cache",
+        "motivo": "copia local vigente (menos de 720 min)"
+      },
+      "titulo": "Consulté la copia local",
+      "descripcion": "Usé la copia de los datos que ya se había traído del almacén, sin volver a molestarlo."
+    },
+    {
+      "nombre": "transformacion_duckdb",
+      "detalle": "Transformación DuckDB aplicada (21 filas, 6 columnas)",
+      "ms": 3.718,
+      "extra": {
+        "sql": "SELECT periodo,\n       ingreso,\n       ingreso - LAG(ingreso) OVER (ORDER BY periodo) AS variacion_periodo,\n       (ingreso - LAG(ingreso) OVER (ORDER BY periodo))\n         / NULLIF(LAG(ingreso) OVER (ORDER BY periodo), 0) AS variacion_pct,\n       SUM(ingreso) OVER (ORDER BY periodo ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS acumulado,\n       AVG(ingreso) OVER (ORDER BY periodo ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS media_movil_3\nFROM _resultado\nORDER BY periodo"
+      },
+      "titulo": "Calculé totales y variaciones",
+      "descripcion": "Agregué acumulados, participaciones y comparaciones contra el periodo anterior."
+    },
+    {
+      "nombre": "enmascaramiento_pii",
+      "detalle": "Aplicando política de PII",
+      "ms": 0.038,
+      "titulo": "Protegí los datos personales",
+      "descripcion": "Oculté correos, documentos y nombres completos."
+    },
+    {
+      "nombre": "visualizacion",
+      "detalle": "Gráfico elegido: linea — Hay una dimensión temporal: la serie muestra la evolución.",
+      "ms": 0.929,
+      "titulo": "Elegí el gráfico",
+      "descripcion": "Seleccioné la visualización que mejor representa el resultado."
+    }
+  ],
+  "metricas": {
+    "latencia_total_ms": 15.19,
+    "latencia_clasificador_ms": 0.122,
+    "costo_llm_usd": 0.0,
+    "tokens": {
+      "input": 0,
+      "output": 0
+    },
+    "origen_sql": "planificador_determinista",
+    "fuente": "duckdb_cache",
+    "fuente_configurada": "redshift",
+    "modo_demo": false,
+    "max_rows": 5000,
+    "segundos": 0.015,
+    "moneda": "S/",
+    "fecha_datos": "2025-09-30"
+  }
+}
