@@ -176,7 +176,9 @@ Qué hace:
 En **Configuración** se ve tabla por tabla cuántas filas hay, de cuándo es la copia y si está
 vigente, con botones *Traer novedades* y *Recargar todo*.
 
-El detalle está en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). El guion de la presentación
+Los diagramas están en [design/arquitectura.md](design/arquitectura.md) (Mermaid, se renderizan
+en GitHub) y en [design/arquitectura.svg](design/arquitectura.svg) para presentaciones. El
+detalle escrito está en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). El guion de la presentación
 está en [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
 ## Clasificador edge en español

@@ -1,5 +1,8 @@
 # Arquitectura — Optimiza Conversacional
 
+Diagramas: [design/arquitectura.md](../design/arquitectura.md) (Mermaid) y
+[design/arquitectura.svg](../design/arquitectura.svg) (para presentaciones).
+
 ## 1. Vista general
 
 ```
