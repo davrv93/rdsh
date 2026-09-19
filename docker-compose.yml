@@ -134,9 +134,9 @@ services:
   # Evolution API expone WhatsApp como API HTTP. La aplicación le habla por REST
   # y recibe los mensajes entrantes en /api/canales/whatsapp/webhook.
   evolution-api:
-    # Imagen oficial de Evolution API v2. Para fijar versión, cambia `latest`
-    # por una etiqueta concreta (por ejemplo v2.2.3) en EVOLUTION_IMAGE.
-    image: "${EVOLUTION_IMAGE:-evoapicloud/evolution-api:latest}"
+    # Versión fijada a propósito: `latest` mueve el piso bajo una demo.
+    # La imagen es multiarquitectura (amd64 y arm64), así que corre nativa en Mac.
+    image: "${EVOLUTION_IMAGE:-evoapicloud/evolution-api:v2.3.7}"
     container_name: optimiza-evolution
     profiles: ["whatsapp"]
     depends_on:

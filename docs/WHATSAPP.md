@@ -130,8 +130,11 @@ segundo plano, porque puede tardar más que el margen de reintento.
 - **El QR caduca.** Si la sesión pasa a `close`, hay que volver a vincular desde el panel.
 - **Los datos de la sesión** viven en el volumen `evolution-instances`; borrarlo obliga a
   vincular de nuevo.
-- **Fijar la versión**: la imagen por defecto es `evoapicloud/evolution-api:latest`. En
-  producción conviene fijarla con `EVOLUTION_IMAGE=evoapicloud/evolution-api:v2.3.7`.
+- **Versión**: la imagen está fijada en `evoapicloud/evolution-api:v2.3.7`, la última estable
+  verificada, multiarquitectura (amd64 y arm64). Para probar otra:
+  `EVOLUTION_IMAGE=evoapicloud/evolution-api:v2.3.6 docker compose --profile whatsapp up -d`.
+  Evitar `latest`: mueve el piso sin aviso. Las series publicadas hoy son v2.3.0 a v2.3.7 y
+  candidatas 2.4.0-rc.
 - **Puerto**: `EVOLUTION_PORT` (8089 por omisión) por si el 8080 está ocupado.
 - Los eventos quedan en la auditoría: `whatsapp_recibido`, `whatsapp_respondido`,
   `whatsapp_no_autorizado`, `whatsapp_error`.
